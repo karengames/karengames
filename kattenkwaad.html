@@ -1,1 +1,1124 @@
-deze game is ff niet beschrikbaar brobeer het later op nieuw sukkel
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kattenkwaad op Straat 3D - Level 11 Editie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            background-color: #1a202c; touch-action: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            justify-content: space-between; z-index: 10;
+        }
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; pointer-events: auto;
+            color: white; text-align: center; z-index: 50; backdrop-filter: blur(5px);
+        }
+        #mobile-controls {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px;
+            gap: 10px; pointer-events: auto; z-index: 40;
+        }
+        @media (min-width: 768px) { #mobile-controls { display: none; } }
+        .d-btn {
+            background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%; color: white; font-size: 24px; display: flex;
+            justify-content: center; align-items: center; user-select: none;
+            -webkit-user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .d-btn:active { background: rgba(255, 255, 255, 0.4); }
+        .up { grid-column: 2; grid-row: 1; }
+        .left { grid-column: 1; grid-row: 2; }
+        .right { grid-column: 3; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 3; }
+        
+        .alert-karen { animation: flashRed 0.5s infinite alternate; }
+        @keyframes flashRed {
+            from { background-color: rgba(239, 68, 68, 0.9); }
+            to { background-color: rgba(185, 28, 28, 0.9); }
+        }
+        .alert-bozeman { animation: flashDarkRed 0.3s infinite alternate; }
+        @keyframes flashDarkRed {
+            from { background-color: rgba(153, 27, 27, 0.9); }
+            to { background-color: rgba(127, 29, 29, 0.9); }
+        }
+        .alert-warning { animation: flashOrange 0.5s infinite alternate; }
+        @keyframes flashOrange {
+            from { background-color: rgba(245, 158, 11, 0.9); }
+            to { background-color: rgba(217, 119, 6, 0.9); }
+        }
+
+        #flashOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 100; opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease-out;
+        }
+        .flash-active { opacity: 1 !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container"></div>
+<div id="flashOverlay"></div>
+
+<div class="ui-layer p-4">
+    <div class="flex justify-between items-start w-full">
+        <div class="bg-white/90 p-3 rounded-lg shadow-lg font-bold text-gray-800 pointer-events-auto border-l-4 border-blue-500">
+            <p class="text-xl">Level: <span id="levelDisplay">1</span> / 11</p>
+            <p class="text-sm text-yellow-600">Opdracht: <span id="tasksDisplay">Belletje Lellen</span></p>
+        </div>
+        
+        <div class="flex flex-col items-end gap-2">
+            <div id="escapeMsg" class="hidden bg-green-500 p-3 rounded-lg shadow-lg font-bold text-white animate-pulse border-2 border-white">
+                RENNEN! NAAR HET EINDE VAN DE STRAAT! 🏃‍♂️
+            </div>
+            <div id="countdownAlert" class="hidden p-3 rounded-lg shadow-lg font-bold text-white alert-warning border-2 border-white">
+                ALARM OVER <span id="countdownText" class="text-2xl">5</span> SEC! 😱
+            </div>
+            <div id="karenAlert" class="hidden p-3 rounded-lg shadow-lg font-bold text-white alert-karen border-2 border-white">
+                KAREN IS BUITEN!! RENNEN!! 😡
+            </div>
+            <div id="bozemanAlert" class="hidden p-3 rounded-lg shadow-lg font-bold text-white alert-bozeman border-2 border-white">
+                DE BOZE MAN IS ER!! ZOEK BLOEMEN-BOSJES! 👹
+            </div>
+            <div id="hiddenAlert" class="hidden bg-blue-500 p-3 rounded-lg shadow-lg font-bold text-white border-2 border-white">
+                Verstopt in de bosjes! 🤫
+            </div>
+            <div id="successAlert" class="hidden bg-green-500 p-3 rounded-lg shadow-lg font-bold text-white border-2 border-white">
+                Veilig! 😎
+            </div>
+            <div id="actionAlert" class="hidden bg-red-500 p-3 rounded-lg shadow-lg font-bold text-white border-2 border-white">
+                Je moet dichterbij staan! 🚶
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="mobile-controls">
+    <div class="d-btn up" id="btn-up">▲</div>
+    <div class="d-btn left" id="btn-left">◀</div>
+    <div class="d-btn right" id="btn-right">▶</div>
+    <div class="d-btn down" id="btn-down">▼</div>
+</div>
+
+<div id="startScreen" class="overlay">
+    <h1 class="text-6xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-500 drop-shadow-lg text-center">
+        Mega Kattenkwaad
+    </h1>
+    <p class="text-lg max-w-lg mb-4 text-gray-200">
+        Klik op het voorwerp om een <b>actie-cutscene</b> te starten! Sleep over het scherm om de camera te draaien.
+    </p>
+    <div class="text-left mb-6 bg-gray-900/80 p-6 rounded-xl border border-gray-700 shadow-2xl text-sm">
+        <p class="mb-1"><span class="inline-block w-4 h-4 bg-blue-500 rounded-sm mr-2"></span> <b>Jij</b> (WASD/Pijltjes)</p>
+        <p class="mb-1"><span class="inline-block w-4 h-4 bg-green-800 rounded-full mr-2"></span> <b>Normale Bosjes</b> (Karen kan je niet zien)</p>
+        <p class="mb-1"><span class="inline-block w-4 h-4 bg-pink-400 rounded-sm mr-2"></span> <b>Karen</b> (Zoekt je en maakt foto's)</p>
+        <p class="mb-1 mt-3"><span class="inline-block w-4 h-4 bg-red-600 rounded-sm mr-2"></span> <b>De Boze Man 👹</b> (Razendsnel! Ziet door normale bosjes!)</p>
+        <p class="mb-1"><span class="inline-block w-4 h-4 bg-blue-300 rounded-full mr-2"></span> <b>Bloemen-Bosjes</b> (Verstop je HIER voor de Boze Man!)</p>
+    </div>
+    <button onclick="startGame()" class="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-4 px-10 rounded-full text-2xl shadow-[0_0_15px_rgba(234,179,8,0.5)] transition transform hover:scale-110">
+        START MISSIE
+    </button>
+</div>
+
+<div id="gameOverScreen" class="overlay hidden">
+    <h1 class="text-7xl font-extrabold mb-4 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">GEPAKT!</h1>
+    <p class="text-2xl mb-8">Je bent in de kraag gevat!</p>
+    <button onclick="resetGame()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-10 rounded-full text-xl shadow-lg transition transform hover:scale-105">
+        Probeer Opnieuw
+    </button>
+</div>
+
+<div id="buurtAppScreen" class="overlay hidden bg-blue-900/95">
+    <h1 class="text-5xl font-extrabold mb-4 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">📸 GEFOTOGRAFEERD!</h1>
+    <div class="bg-white text-black p-6 rounded-lg max-w-md w-full mb-8 text-left relative">
+        <div class="flex items-center mb-4 border-b pb-2">
+            <div class="w-10 h-10 bg-pink-400 rounded-full mr-3"></div>
+            <div>
+                <p class="font-bold">Boze Buurvrouw Karen</p>
+                <p class="text-xs text-gray-500">Zojuist gepost in 'Buurtpreventie App'</p>
+            </div>
+        </div>
+        <p class="mb-4">"PAS OP MENSEN! Deze vandaal rent hier op straat rond en verpest mijn tuin! Ik heb meteen de manager gebeld! SCHANDALIG!"</p>
+        <div class="w-full h-32 bg-gray-200 flex items-center justify-center text-5xl">
+            🏃‍♂️💨
+        </div>
+    </div>
+    <button onclick="resetGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-full text-xl shadow-lg transition transform hover:scale-105">
+        Verwijder App & Probeer Opnieuw
+    </button>
+</div>
+
+<div id="winScreen" class="overlay hidden">
+    <h1 class="text-7xl font-extrabold mb-4 text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.8)]">UITGESPEELD!</h1>
+    <p class="text-2xl mb-8 max-w-md">Je hebt het raam ingeslagen en beide overleefd! Een ware meester in kattenkwaad.</p>
+    <p class="text-6xl mb-8">🏆😎</p>
+    <button onclick="resetGame()" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-10 rounded-full text-xl shadow-lg transition transform hover:scale-105">
+        Speel Nog Een Keer
+    </button>
+</div>
+
+<script>
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const buurtAppScreen = document.getElementById('buurtAppScreen');
+    const winScreen = document.getElementById('winScreen');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const tasksDisplay = document.getElementById('tasksDisplay');
+    const escapeMsg = document.getElementById('escapeMsg');
+    const karenAlert = document.getElementById('karenAlert');
+    const bozemanAlert = document.getElementById('bozemanAlert');
+    const countdownAlert = document.getElementById('countdownAlert');
+    const countdownText = document.getElementById('countdownText');
+    const hiddenAlert = document.getElementById('hiddenAlert');
+    const successAlert = document.getElementById('successAlert');
+    const flashOverlay = document.getElementById('flashOverlay');
+    const actionAlert = document.getElementById('actionAlert');
+
+    let scene, camera, renderer, clock;
+    let gameState = 'START'; // START, PLAY, CUTSCENE, GAMEOVER, WIN
+    let currentLevel = 1;
+    const maxLevel = 11;
+    
+    const areaSize = 400; 
+    
+    let player;
+    let karen; 
+    let bozeman;
+    let windowMesh; 
+    let mischiefItem = null;
+    let exitPortal = null;
+    
+    let solidBoxes = [];
+    let hidingSpots = [];
+
+    // Cutscene Variabelen
+    let cutsceneTime = 0;
+    
+    // Camera Besturing
+    let isDraggingCam = false;
+    let initialPointer = {x: 0, y: 0};
+    let currentPointer = {x: 0, y: 0};
+    let camAngleX = 0; 
+    let camAngleY = Math.PI / 6; 
+    let camDistance = 80; // Globale variabele voor in- en uitzoomen
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('pointerdown', (e) => {
+        if (e.target.tagName !== 'CANVAS' || (gameState !== 'PLAY' && gameState !== 'CUTSCENE')) return;
+        if (!e.isPrimary) return; // Negeer multitouch voor het draaien (zoals zoomen)
+        isDraggingCam = true;
+        initialPointer = { x: e.clientX, y: e.clientY };
+        currentPointer = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDraggingCam || !e.isPrimary) return;
+        const deltaX = e.clientX - currentPointer.x;
+        const deltaY = e.clientY - currentPointer.y;
+        
+        camAngleX -= deltaX * 0.01;
+        camAngleY += deltaY * 0.01;
+        camAngleY = Math.max(0.1, Math.min(Math.PI / 2.5, camAngleY));
+        
+        currentPointer = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('pointerup', (e) => {
+        if (!e.isPrimary) return;
+        isDraggingCam = false;
+        if (gameState !== 'PLAY' || !mischiefItem || mischiefItem.completed) return;
+
+        const dist = Math.hypot(e.clientX - initialPointer.x, e.clientY - initialPointer.y);
+        if (dist < 10) { 
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // Controleer child meshes als het een groep is
+            const objectsToTest = [];
+            mischiefItem.mesh.traverse((child) => { if(child.isMesh) objectsToTest.push(child); });
+
+            const intersects = raycaster.intersectObjects(objectsToTest, true);
+            
+            if (intersects.length > 0) {
+                if (player.mesh.position.distanceTo(mischiefItem.mesh.position) < 30) {
+                    startCutscene(); // Start de actie-animatie!
+                } else {
+                    actionAlert.classList.remove('hidden');
+                    setTimeout(() => actionAlert.classList.add('hidden'), 2000);
+                }
+            }
+        }
+    });
+
+    const keys = { w:false, a:false, s:false, d:false, ArrowUp:false, ArrowLeft:false, ArrowDown:false, ArrowRight:false };
+    window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+    window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+    const addTouch = (id, keyName) => {
+        const btn = document.getElementById(id);
+        const setKey = (val) => (e) => { e.preventDefault(); keys[keyName] = val; };
+        btn.addEventListener('touchstart', setKey(true)); btn.addEventListener('touchend', setKey(false));
+        btn.addEventListener('mousedown', setKey(true)); btn.addEventListener('mouseup', setKey(false));
+        btn.addEventListener('mouseleave', setKey(false));
+    };
+    addTouch('btn-up', 'w'); addTouch('btn-down', 's'); addTouch('btn-left', 'a'); addTouch('btn-right', 'd');
+
+    // Zoom via Scroll wheel (PC)
+    window.addEventListener('wheel', (e) => {
+        if (gameState !== 'PLAY') return;
+        camDistance += e.deltaY * 0.05;
+        camDistance = Math.max(20, Math.min(200, camDistance)); // Min en max zoom
+    }, {passive: true});
+
+    // Zoom via Touch Pinch (Mobiel)
+    let lastPinchDist = 0;
+    window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            lastPinchDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    }, {passive: false});
+
+    window.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && gameState === 'PLAY') {
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            camDistance += (lastPinchDist - dist) * 0.5;
+            camDistance = Math.max(20, Math.min(200, camDistance));
+            lastPinchDist = dist;
+        }
+    }, {passive: false});
+
+    function createCharacter(skinColor, shirtColor, pantsColor, hairColor, faceImageUrl) {
+        const group = new THREE.Group();
+
+        const headGeo = new THREE.BoxGeometry(2.4, 2.4, 2.4);
+        const skinMat = new THREE.MeshStandardMaterial({ color: skinColor });
+        let headMaterials = skinMat;
+
+        if (faceImageUrl) {
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.crossOrigin = 'Anonymous'; 
+            const faceTexture = textureLoader.load(faceImageUrl);
+            const faceMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: faceTexture });
+            headMaterials = [skinMat, skinMat, skinMat, skinMat, faceMat, skinMat];
+        }
+
+        const head = new THREE.Mesh(headGeo, headMaterials);
+        head.position.y = 6.2; 
+        head.castShadow = true;
+        group.add(head);
+
+        if (hairColor) {
+            const hairGeo = new THREE.BoxGeometry(2.6, 1.0, 2.6);
+            const hairMat = new THREE.MeshStandardMaterial({ color: hairColor });
+            const hair = new THREE.Mesh(hairGeo, hairMat);
+            hair.position.y = 1.0;
+            hair.castShadow = true;
+            head.add(hair);
+        }
+
+        const bodyGeo = new THREE.BoxGeometry(2, 3, 1.5);
+        const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor });
+        const body = new THREE.Mesh(bodyGeo, shirtMat);
+        body.position.y = 4.0; 
+        body.castShadow = true;
+        group.add(body);
+
+        const limbGeo = new THREE.BoxGeometry(0.8, 2.5, 0.8);
+        limbGeo.translate(0, -1.25, 0); 
+        const pantsMat = new THREE.MeshStandardMaterial({ color: pantsColor });
+
+        const armL = new THREE.Mesh(limbGeo, shirtMat);
+        armL.position.set(-1.5, 5.2, 0); 
+        armL.castShadow = true;
+        group.add(armL);
+
+        const armR = new THREE.Mesh(limbGeo, shirtMat);
+        armR.position.set(1.5, 5.2, 0); 
+        armR.castShadow = true;
+        group.add(armR);
+
+        const legL = new THREE.Mesh(limbGeo, pantsMat);
+        legL.position.set(-0.6, 2.5, 0); 
+        legL.castShadow = true;
+        group.add(legL);
+
+        const legR = new THREE.Mesh(limbGeo, pantsMat);
+        legR.position.set(0.6, 2.5, 0); 
+        legR.castShadow = true;
+        group.add(legR);
+
+        return { root: group, armL, armR, legL, legR };
+    }
+
+    function initThreeJS() {
+        const container = document.getElementById('game-container');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); 
+        scene.fog = new THREE.Fog(0x87CEEB, 100, 500); 
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1500);
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        clock = new THREE.Clock();
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(100, 150, 100);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 600;
+        dirLight.shadow.camera.left = -200; dirLight.shadow.camera.right = 200;
+        dirLight.shadow.camera.top = 200; dirLight.shadow.camera.bottom = -200;
+        scene.add(dirLight);
+
+        buildNeighborhood();
+        window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function addSolidObject(mesh) {
+        scene.add(mesh);
+        mesh.updateMatrixWorld();
+        solidBoxes.push(new THREE.Box3().setFromObject(mesh));
+    }
+
+    function buildNeighborhood() {
+        solidBoxes = [];
+        hidingSpots = [];
+
+        const streetGeo = new THREE.PlaneGeometry(areaSize, areaSize/2 + 50);
+        const streetMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
+        const street = new THREE.Mesh(streetGeo, streetMat);
+        street.rotation.x = -Math.PI / 2;
+        street.position.z = areaSize/4 + 25; 
+        street.receiveShadow = true;
+        scene.add(street);
+
+        const grassGeo = new THREE.PlaneGeometry(areaSize, areaSize/2);
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.8 });
+        const grass = new THREE.Mesh(grassGeo, grassMat);
+        grass.rotation.x = -Math.PI / 2;
+        grass.position.z = -areaSize/4; 
+        grass.receiveShadow = true;
+        scene.add(grass);
+
+        const houseGeo = new THREE.BoxGeometry(40, 25, 30);
+        const houseMat = new THREE.MeshStandardMaterial({ color: 0xffedd5 }); 
+        const house = new THREE.Mesh(houseGeo, houseMat);
+        house.position.set(0, 12.5, -25); 
+        house.castShadow = true; house.receiveShadow = true;
+        addSolidObject(house);
+
+        const roofGeo = new THREE.ConeGeometry(28, 14, 4);
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x991b1b }); 
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 32, -25);
+        roof.rotation.y = Math.PI / 4; 
+        roof.castShadow = true;
+        scene.add(roof);
+
+        const doorGeo = new THREE.PlaneGeometry(8, 14);
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x451a03 }); 
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(0, 7, -9.9); 
+        scene.add(door);
+
+        // Raam (Voor Level 11)
+        const winGeo = new THREE.PlaneGeometry(10, 8);
+        const winMat = new THREE.MeshStandardMaterial({ color: 0x87ceeb, roughness: 0.2, metalness: 0.8, side: THREE.DoubleSide });
+        windowMesh = new THREE.Mesh(winGeo, winMat);
+        windowMesh.position.set(12, 12, -9.9);
+        scene.add(windowMesh);
+
+        for (let i = -150; i <= 150; i+= 60) {
+            if (Math.abs(i) < 40) continue; 
+            const nHouse = new THREE.Mesh(houseGeo, new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+            nHouse.position.set(i, 12.5, -25);
+            addSolidObject(nHouse);
+            
+            const nRoof = new THREE.Mesh(roofGeo, roofMat);
+            nRoof.position.set(i, 32, -25);
+            nRoof.rotation.y = Math.PI / 4;
+            scene.add(nRoof);
+        }
+
+        // Bosjes genereren
+        const bushGeo = new THREE.SphereGeometry(6, 12, 12);
+        const bushMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.9, transparent: true, opacity: 0.8 }); 
+        
+        for(let i=0; i<80; i++) {
+            const bush = new THREE.Mesh(bushGeo, bushMat);
+            let bx = (Math.random() - 0.5) * (areaSize - 40);
+            let bz = (Math.random() - 0.5) * (areaSize - 40);
+            
+            if (Math.abs(bx) < 30 && bz < 10 && bz > -40) continue; 
+
+            bush.position.set(bx, 3, bz);
+            bush.castShadow = true;
+            
+            const isSafe = Math.random() < 0.20; 
+            
+            if (isSafe) {
+                const flowerGeo = new THREE.SphereGeometry(0.8);
+                const flowerMat = new THREE.MeshStandardMaterial({ color: 0x60a5fa });
+                for(let f=0; f<5; f++) {
+                    const flower = new THREE.Mesh(flowerGeo, flowerMat);
+                    flower.position.set((Math.random()-0.5)*10, (Math.random())*6, (Math.random()-0.5)*10);
+                    bush.add(flower);
+                }
+            }
+
+            scene.add(bush);
+            hidingSpots.push({ position: bush.position, radius: 6, safeForBozeMan: isSafe });
+        }
+    }
+
+    function checkCollision(position, radius) {
+        const testBox = new THREE.Box3().setFromCenterAndSize(position, new THREE.Vector3(radius*2, radius*2, radius*2));
+        for(let i=0; i<solidBoxes.length; i++) { if(testBox.intersectsBox(solidBoxes[i])) return true; }
+        if (position.x < -areaSize/2 + radius || position.x > areaSize/2 - radius) return true;
+        if (position.z < -areaSize/2 + radius || position.z > areaSize/2 - radius) return true;
+        return false;
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    class Player {
+        constructor() {
+            this.model = createCharacter(0xffdab9, 0x3b82f6, 0x1e3a8a, null, 'https://i.ibb.co/d4xh1jYJ/PXL-20260629-141431698-MP.jpg');
+            this.mesh = this.model.root;
+            this.mesh.scale.set(1.5, 1.5, 1.5); 
+            this.mesh.position.set(0, 0, 40);
+            scene.add(this.mesh);
+            
+            this.speed = 40; 
+            this.radius = 3.0; 
+            this.isHiddenFromKaren = false;
+            this.isHiddenFromBozeMan = false;
+            this.animTime = 0;
+        }
+
+        update(dt) {
+            let moveZ = 0; let moveX = 0;
+            if (keys.w || keys.ArrowUp) { moveZ -= Math.cos(camAngleX); moveX -= Math.sin(camAngleX); }
+            if (keys.s || keys.ArrowDown) { moveZ += Math.cos(camAngleX); moveX += Math.sin(camAngleX); }
+            if (keys.a || keys.ArrowLeft) { moveX -= Math.cos(camAngleX); moveZ += Math.sin(camAngleX); }
+            if (keys.d || keys.ArrowRight) { moveX += Math.cos(camAngleX); moveZ -= Math.sin(camAngleX); }
+
+            let isMoving = false;
+            if (moveX !== 0 || moveZ !== 0) {
+                const len = Math.sqrt(moveX*moveX + moveZ*moveZ);
+                moveX /= len; moveZ /= len;
+                isMoving = true;
+            }
+
+            const nextPos = this.mesh.position.clone();
+            nextPos.x += moveX * this.speed * dt;
+            if (checkCollision(nextPos, this.radius)) nextPos.x = this.mesh.position.x; 
+            nextPos.z += moveZ * this.speed * dt;
+            if (checkCollision(nextPos, this.radius)) nextPos.z = this.mesh.position.z; 
+            this.mesh.position.copy(nextPos);
+
+            if (isMoving) {
+                this.mesh.rotation.y = Math.atan2(moveX, moveZ);
+                this.animTime += dt * this.speed * 0.4;
+                const swing = Math.sin(this.animTime) * 1.5;
+                this.model.armL.rotation.x = swing;
+                this.model.armR.rotation.x = -swing;
+                this.model.legL.rotation.x = -swing;
+                this.model.legR.rotation.x = swing;
+            } else {
+                this.model.armL.rotation.x = 0;
+                this.model.armR.rotation.x = 0;
+                this.model.legL.rotation.x = 0;
+                this.model.legR.rotation.x = 0;
+            }
+
+            this.isHiddenFromKaren = false;
+            this.isHiddenFromBozeMan = false;
+            for(let spot of hidingSpots) {
+                if (this.mesh.position.distanceTo(spot.position) < spot.radius + 1) {
+                    this.isHiddenFromKaren = true;
+                    if (spot.safeForBozeMan) this.isHiddenFromBozeMan = true;
+                    break;
+                }
+            }
+
+            // FIX 1: Transparantie veilig toepassen (ook op de kubus met de foto's!)
+            const applyTrans = (mesh, hidden) => {
+                if (mesh.material) {
+                    if (Array.isArray(mesh.material)) {
+                        mesh.material.forEach(m => { m.transparent = true; m.opacity = hidden ? 0.4 : 1.0; });
+                    } else {
+                        mesh.material.transparent = true; mesh.material.opacity = hidden ? 0.4 : 1.0;
+                    }
+                }
+            };
+
+            this.mesh.children.forEach(child => {
+                applyTrans(child, this.isHiddenFromKaren);
+                if(child.children) { child.children.forEach(sub => applyTrans(sub, this.isHiddenFromKaren)); }
+            });
+
+            if (this.isHiddenFromKaren) hiddenAlert.classList.remove('hidden');
+            else hiddenAlert.classList.add('hidden');
+
+            // FIX 2: De ontbrekende camera-code is terug! Hij volgt je weer netjes.
+            const targetX = this.mesh.position.x + camDistance * Math.sin(camAngleX) * Math.cos(camAngleY);
+            const targetY = this.mesh.position.y + camDistance * Math.sin(camAngleY);
+            const targetZ = this.mesh.position.z + camDistance * Math.cos(camAngleX) * Math.cos(camAngleY);
+
+            camera.position.lerp(new THREE.Vector3(targetX, Math.max(10, targetY), targetZ), 0.15);
+            camera.lookAt(this.mesh.position.clone().add(new THREE.Vector3(0, 10, 0)));
+        }
+    }
+
+    class EnemyNPC {
+        constructor(type, level) {
+            this.type = type;
+            if (type === 'karen') {
+                this.model = createCharacter(0xffdab9, 0xec4899, 0x111827, 0xfde047, 'https://i.ibb.co/C3yjQmvQ/Whats-App-Image-2026-06-27-at-20-05-44.jpg');
+                this.speed = 18 + (level * 2.0); 
+            } else {
+                this.model = createCharacter(0xffdab9, 0xb91c1c, 0x111827, 0x000000, null);
+                this.speed = 36; 
+            }
+
+            this.mesh = this.model.root;
+            this.mesh.scale.set(1.5, 1.5, 1.5); 
+            this.mesh.position.set(0, 0, -9);
+            this.mesh.visible = false;
+            scene.add(this.mesh);
+
+            this.radius = 3.0; 
+            this.active = false;
+            this.isSpawning = false;
+            this.spawnTimer = null;
+            this.countdownInterval = null;
+            
+            this.state = 'chase'; 
+            this.wanderTarget = new THREE.Vector3();
+            this.animTime = 0;
+            this.giveUpTimer = 0; 
+        }
+
+        triggerSpawnCountdown() {
+            if (this.isSpawning || this.active) return;
+            this.isSpawning = true;
+            
+            if (this.type === 'karen') {
+                countdownAlert.classList.remove('hidden');
+                let time = 5;
+                countdownText.innerText = time;
+                this.countdownInterval = setInterval(() => {
+                    time--;
+                    if (time > 0) { countdownText.innerText = time; } 
+                    else { clearInterval(this.countdownInterval); }
+                }, 1000);
+            }
+
+            this.spawnTimer = setTimeout(() => { this.spawn(); }, 5000);
+        }
+
+        spawn() {
+            this.active = true;
+            this.isSpawning = false;
+            this.giveUpTimer = 0; 
+            if (this.type === 'karen') countdownAlert.classList.add('hidden');
+            
+            this.mesh.visible = true;
+            this.mesh.position.set(this.type === 'karen' ? -3 : 3, 0, -5); 
+            
+            if (this.type === 'karen') {
+                karenAlert.classList.remove('hidden');
+                setTimeout(() => karenAlert.classList.add('hidden'), 4000);
+            } else {
+                bozemanAlert.classList.remove('hidden');
+                setTimeout(() => bozemanAlert.classList.add('hidden'), 4000);
+            }
+        }
+
+        update(dt, playerObj) {
+            if (!this.active) return;
+
+            let dir = new THREE.Vector3();
+            let currentSpeed = this.speed;
+            let isMoving = false;
+
+            const playerHidden = (this.type === 'karen') ? playerObj.isHiddenFromKaren : playerObj.isHiddenFromBozeMan;
+
+            if (playerHidden) this.state = 'wander';
+            else if (this.mesh.position.distanceTo(playerObj.mesh.position) < 200) this.state = 'chase';
+
+            if (this.state === 'chase') {
+                dir.subVectors(playerObj.mesh.position, this.mesh.position);
+                dir.y = 0;
+                isMoving = true;
+                this.giveUpTimer = 0; 
+            } else {
+                currentSpeed *= 0.4; 
+                this.giveUpTimer += dt; 
+                if (this.giveUpTimer > 7) { this.goInside(); return; }
+
+                if (this.mesh.position.distanceTo(this.wanderTarget) < 5 || this.wanderTarget.length() === 0) {
+                    this.wanderTarget.set((Math.random() - 0.5) * 200, 0, (Math.random() - 0.5) * 200);
+                }
+                dir.subVectors(this.wanderTarget, this.mesh.position);
+                dir.y = 0;
+                isMoving = true;
+            }
+            
+            if (dir.length() > 0 && isMoving) {
+                dir.normalize();
+                this.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                
+                const nextPos = this.mesh.position.clone();
+                nextPos.x += dir.x * currentSpeed * dt;
+                let hitX = checkCollision(nextPos, this.radius);
+                if (hitX) nextPos.x = this.mesh.position.x;
+                nextPos.z += dir.z * currentSpeed * dt;
+                let hitZ = checkCollision(nextPos, this.radius);
+                if (hitZ) nextPos.z = this.mesh.position.z;
+
+                if (this.state === 'wander' && (hitX || hitZ)) this.wanderTarget.set(0,0,0); 
+
+                this.mesh.position.copy(nextPos);
+                
+                this.animTime += dt * currentSpeed * 0.4;
+                const swing = Math.sin(this.animTime) * 1.5;
+                this.model.armL.rotation.x = swing;
+                this.model.armR.rotation.x = -swing;
+                this.model.legL.rotation.x = -swing;
+                this.model.legR.rotation.x = swing;
+            } else {
+                this.model.armL.rotation.x = 0; this.model.armR.rotation.x = 0;
+                this.model.legL.rotation.x = 0; this.model.legR.rotation.x = 0;
+            }
+        }
+        
+        clearTimers() {
+            if(this.countdownInterval) clearInterval(this.countdownInterval);
+            if(this.spawnTimer) clearTimeout(this.spawnTimer);
+        }
+
+        goInside() {
+            this.active = false;
+            this.mesh.visible = false;
+            if (!karen.active && (!bozeman || !bozeman.active)) {
+                successAlert.innerText = "Ze hebben het opgegeven! 🏠";
+                successAlert.classList.remove('hidden');
+                setTimeout(() => successAlert.classList.add('hidden'), 4000);
+                spawnExitPortal("Kust is veilig! Naar de volgende straat! 🏃‍♂️");
+            }
+        }
+    }
+
+    class MischiefItem {
+        constructor(type, position) {
+            this.type = type;
+            this.mesh = new THREE.Group();
+            this.radius = 5;
+
+            // Nieuwe 3D Realistische Modellen!
+            if (type === 'doorbell') {
+                const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.5), new THREE.MeshStandardMaterial({color: 0xcccccc}));
+                const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.6), new THREE.MeshStandardMaterial({color: 0xff0000, emissive: 0xff0000}));
+                btn.rotation.x = Math.PI / 2; btn.position.z = 0.3;
+                this.btn = btn;
+                this.mesh.add(box, btn);
+            } 
+            else if (type === 'trash') {
+                const body = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.5, 4.5, 16), new THREE.MeshStandardMaterial({color: 0x166534}));
+                const lid = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.5, 16), new THREE.MeshStandardMaterial({color: 0x064e3b}));
+                lid.position.y = 2.4;
+                this.mesh.add(body, lid);
+            } 
+            else if (type === 'tp') {
+                // Toiletpapier Rol
+                const roll = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 2, 16), new THREE.MeshStandardMaterial({color: 0xffffff}));
+                roll.rotation.z = Math.PI/2; roll.position.y = 1;
+                const tail = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 4), new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide}));
+                tail.position.set(0, -1, 1); tail.rotation.x = Math.PI/4;
+                this.mesh.add(roll, tail);
+            }
+            else if (type === 'fakepoop') {
+                // Kak ziet er nu echt uit als een hoopje
+                const m = new THREE.MeshStandardMaterial({color: 0x5c4033, roughness: 0.9});
+                const b1 = new THREE.Mesh(new THREE.SphereGeometry(1.4), m); b1.scale.y = 0.5;
+                const b2 = new THREE.Mesh(new THREE.SphereGeometry(1.0), m); b2.scale.y = 0.5; b2.position.y = 0.6;
+                const b3 = new THREE.Mesh(new THREE.SphereGeometry(0.6), m); b3.scale.y = 0.6; b3.position.y = 1.1;
+                this.mesh.add(b1, b2, b3);
+            } 
+            else if (type === 'gnome') {
+                // Tuinkabouter
+                const base = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 2.5, 16), new THREE.MeshStandardMaterial({color: 0x2563eb}));
+                base.position.y = 1.25;
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.8), new THREE.MeshStandardMaterial({color: 0xffdab9}));
+                head.position.y = 2.8;
+                const hat = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 16), new THREE.MeshStandardMaterial({color: 0xdc2626}));
+                hat.position.y = 4.2;
+                this.mesh.add(base, head, hat);
+            }
+            else if (type === 'waterballoon') {
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), new THREE.MeshStandardMaterial({color: 0x0ea5e9, transparent:true, opacity:0.8}));
+                const knot = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 8), new THREE.MeshStandardMaterial({color: 0x0ea5e9}));
+                knot.position.y = 1.5;
+                this.mesh.add(body, knot);
+            }
+            else if (type === 'chalk') {
+                // Krijt tekening met de vernieuwde URL!
+                const tl = new THREE.TextureLoader();
+                tl.crossOrigin = 'Anonymous';
+                const tex = tl.load('https://i.ibb.co/39Pf37rZ/indianpeacesymbol.jpg');
+                const plane = new THREE.Mesh(
+                    new THREE.PlaneGeometry(16, 16), 
+                    new THREE.MeshBasicMaterial({map: tex, color: 0xffffff, transparent: true, side: THREE.DoubleSide})
+                );
+                plane.rotation.x = -Math.PI / 2; 
+                plane.position.y = 0.5; // Iets hoger om niet in het gras te zakken
+                this.mesh.add(plane);
+                this.btn = plane; 
+            }
+            else if (type === 'whoopee') {
+                const cBody = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.4, 32), new THREE.MeshStandardMaterial({color: 0xec4899}));
+                const flap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.5), new THREE.MeshStandardMaterial({color: 0xec4899, side: THREE.DoubleSide}));
+                flap.rotation.x = -Math.PI/2; flap.position.set(0, 0, 2);
+                this.mesh.add(cBody, flap);
+            }
+            else if (type === 'doormat') {
+                const mat = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 6), new THREE.MeshStandardMaterial({color: 0x854d0e}));
+                mat.position.y = 0.2;
+                this.mesh.add(mat);
+            }
+            else if (type === 'stone') {
+                const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5), new THREE.MeshStandardMaterial({color: 0x6b7280, roughness: 1.0}));
+                rock.position.y = 1;
+                this.mesh.add(rock);
+                this.stoneMesh = rock;
+            }
+
+            this.mesh.position.copy(position);
+            this.mesh.children.forEach(c => c.castShadow = true);
+            scene.add(this.mesh);
+
+            this.completed = false;
+            this.time = 0;
+        }
+
+        update(dt) {
+            if(!this.completed) {
+                this.time += dt * 5;
+                if (this.type === 'chalk' && this.btn && this.btn.material) {
+                    this.btn.material.opacity = 0.6 + Math.sin(this.time)*0.4;
+                }
+                else if (this.btn && this.btn.material && this.btn.material.emissive) {
+                    this.btn.material.emissiveIntensity = 0.5 + Math.sin(this.time)*0.5;
+                }
+            }
+        }
+
+        complete() {
+            this.completed = true;
+            
+            if (this.type === 'trash') { this.mesh.rotation.z = Math.PI / 2; this.mesh.position.y = 0.5; }
+            else if (this.type === 'chalk' && this.btn) { this.btn.material.opacity = 1.0; }
+            else if (this.type === 'stone') {
+                this.mesh.visible = false;
+                windowMesh.material.color.setHex(0x111111);
+                windowMesh.material.opacity = 0.9;
+                windowMesh.material.metalness = 0.1;
+                // Simpel deeltjes effect bij raam
+                for(let i=0; i<5; i++) {
+                   const shard = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({color: 0x87ceeb}));
+                   shard.position.set(12 + Math.random()*2, 12 + Math.random()*2, -9);
+                   scene.add(shard);
+                   setTimeout(() => scene.remove(shard), 1000);
+                }
+            }
+            
+            if(this.btn && this.btn.material.emissive) this.btn.material.emissiveIntensity = 0;
+
+            if (!karen.active && !karen.isSpawning) {
+                if (currentLevel === 11) {
+                    // Level 11: 100% kans dat beide naar buiten komen
+                    karen.triggerSpawnCountdown();
+                    if (!bozeman) bozeman = new EnemyNPC('bozeman', currentLevel);
+                    bozeman.triggerSpawnCountdown();
+                } 
+                else {
+                    // 60% kans op Karen, exact 20% kans op Boze Man in de rest van de levels
+                    let karenKomt = Math.random() < 0.60 || currentLevel >= 5;
+                    let bozemanKomt = Math.random() < 0.20;
+                    
+                    if (karenKomt) karen.triggerSpawnCountdown();
+                    
+                    if (bozemanKomt) {
+                        if (!bozeman) bozeman = new EnemyNPC('bozeman', currentLevel);
+                        bozeman.triggerSpawnCountdown();
+                    }
+                    
+                    if (!karenKomt && !bozemanKomt) {
+                        successAlert.innerText = "Ze hebben niks door... 😎";
+                        successAlert.classList.remove('hidden');
+                        setTimeout(() => {
+                            successAlert.classList.add('hidden');
+                            spawnExitPortal("Kust is veilig! Naar de volgende straat! 🚶");
+                        }, 3000);
+                    }
+                }
+            }
+        }
+    }
+
+    // --- DE CUTSCENE FUNCTIE ---
+    function startCutscene() {
+        gameState = 'CUTSCENE';
+        cutsceneTime = 0;
+        
+        // Laat de speler naar het object kijken
+        player.mesh.lookAt(mischiefItem.mesh.position.x, player.mesh.position.y, mischiefItem.mesh.position.z);
+        
+        // Zet armen en benen in ruststand
+        player.model.armL.rotation.x = 0;
+        player.model.armR.rotation.x = 0;
+        player.model.legL.rotation.x = 0;
+        player.model.legR.rotation.x = 0;
+    }
+
+    function spawnExitPortal(msg) {
+        if (!exitPortal) {
+            exitPortal = new ExitPortal();
+            escapeMsg.innerText = msg;
+            escapeMsg.classList.remove('hidden');
+        }
+    }
+
+    class ExitPortal {
+        constructor() {
+            this.mesh = new THREE.Group();
+            const baseGeo = new THREE.CylinderGeometry(20, 20, 0.5, 32);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.5, transparent: true, opacity: 0.7 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            this.mesh.add(base);
+
+            const arrowGeo = new THREE.ConeGeometry(4, 10, 4);
+            const arrowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
+            this.arrow = new THREE.Mesh(arrowGeo, arrowMat);
+            this.arrow.position.y = 10;
+            this.arrow.rotation.x = Math.PI; 
+            this.mesh.add(this.arrow);
+
+            this.mesh.position.set(0, 0.25, areaSize/2 - 25); 
+            scene.add(this.mesh);
+            this.radius = 20;
+            this.time = 0;
+        }
+        update(dt) {
+            this.time += dt;
+            this.arrow.position.y = 12 + Math.sin(this.time * 4) * 3;
+            this.arrow.rotation.y += dt;
+        }
+        remove() { scene.remove(this.mesh); }
+    }
+
+    function clearLevel() {
+        if(player) scene.remove(player.mesh);
+        if(karen) { karen.clearTimers(); scene.remove(karen.mesh); }
+        if(bozeman) { bozeman.clearTimers(); scene.remove(bozeman.mesh); }
+        if(mischiefItem) scene.remove(mischiefItem.mesh);
+        if(exitPortal) exitPortal.remove();
+        if(windowMesh) {
+            windowMesh.material.color.setHex(0x87ceeb);
+            windowMesh.material.opacity = 1.0;
+        }
+        
+        mischiefItem = null;
+        exitPortal = null;
+        bozeman = null;
+        
+        karenAlert.classList.add('hidden');
+        bozemanAlert.classList.add('hidden');
+        countdownAlert.classList.add('hidden');
+        hiddenAlert.classList.add('hidden');
+        successAlert.classList.add('hidden');
+    }
+
+    function initLevel(level) {
+        currentLevel = level;
+        levelDisplay.innerText = level;
+        escapeMsg.classList.add('hidden');
+        flashOverlay.classList.remove('flash-active');
+        camAngleX = 0; 
+        
+        clearLevel();
+
+        player = new Player();
+        karen = new EnemyNPC('karen', level); 
+
+        const levelData = [
+            { text: "Belletje Lellen 🔴", type: 'doorbell', pos: new THREE.Vector3(5, 7, -9.5) },
+            { text: "Vuilnisbak Omgooien 🟢", type: 'trash', pos: new THREE.Vector3(-15, 2, -5) },
+            { text: "WC-Papier in Tuin ⚪", type: 'tp', pos: new THREE.Vector3(20, 2, 5) },
+            { text: "Nepdrol in Brievenbus 🟤", type: 'fakepoop', pos: new THREE.Vector3(0, 7, -9.4) },
+            { text: "Tuinkabouter Verstoppen 🧙", type: 'gnome', pos: new THREE.Vector3(-10, 2, 10) },
+            { text: "Waterballon op de Deur 💧", type: 'waterballoon', pos: new THREE.Vector3(0, 10, -9.5) },
+            { text: "Indiaans Vredessymbool 🏹", type: 'chalk', pos: new THREE.Vector3(0, 0, 15) },
+            { text: "Scheetkussen leggen 💨", type: 'whoopee', pos: new THREE.Vector3(0, 1, -5) },
+            { text: "Deurmat Omdraaien 🚪", type: 'doormat', pos: new THREE.Vector3(0, 0, -7) },
+            { text: "MEGA Belletje Lellen! 🚨", type: 'doorbell', pos: new THREE.Vector3(5, 7, -9.5) },
+            { text: "Raam Inslaan met Steen 🪨", type: 'stone', pos: new THREE.Vector3(12, 1, 10) }
+        ];
+
+        let data = levelData[level - 1];
+        tasksDisplay.innerText = data.text;
+        mischiefItem = new MischiefItem(data.type, data.pos);
+    }
+
+    function startGame() {
+        startScreen.classList.add('hidden');
+        gameState = 'PLAY';
+        initLevel(1);
+    }
+
+    function resetGame() {
+        gameOverScreen.classList.add('hidden');
+        buurtAppScreen.classList.add('hidden');
+        winScreen.classList.add('hidden');
+        flashOverlay.classList.remove('flash-active');
+        gameState = 'PLAY';
+        initLevel(1); 
+    }
+
+    function triggerGameOver() {
+        gameState = 'GAMEOVER';
+        karen.clearTimers();
+        if(bozeman) bozeman.clearTimers();
+        
+        if (Math.random() < 0.25) {
+            flashOverlay.classList.add('flash-active');
+            setTimeout(() => {
+                flashOverlay.classList.remove('flash-active');
+                buurtAppScreen.classList.remove('hidden');
+            }, 300); 
+        } else {
+            gameOverScreen.classList.remove('hidden');
+        }
+    }
+
+    function winGame() {
+        gameState = 'WIN';
+        karen.clearTimers();
+        if(bozeman) bozeman.clearTimers();
+        winScreen.classList.remove('hidden');
+    }
+
+    window.onload = function() {
+        initThreeJS();
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+            
+            if (gameState === 'PLAY') {
+                player.update(dt);
+                if (mischiefItem) mischiefItem.update(dt);
+
+                if (exitPortal) {
+                    exitPortal.update(dt); 
+                    if (player.mesh.position.distanceTo(exitPortal.mesh.position) < (player.radius + exitPortal.radius)) {
+                        if (currentLevel < maxLevel) initLevel(currentLevel + 1);
+                        else winGame();
+                    }
+                }
+
+                if (karen.active) {
+                    karen.update(dt, player);
+                    if (!player.isHiddenFromKaren && player.mesh.position.distanceTo(karen.mesh.position) < (player.radius + karen.radius)) {
+                        triggerGameOver();
+                    }
+                }
+
+                if (bozeman && bozeman.active) {
+                    bozeman.update(dt, player);
+                    if (!player.isHiddenFromBozeMan && player.mesh.position.distanceTo(bozeman.mesh.position) < (player.radius + bozeman.radius)) {
+                        triggerGameOver();
+                    }
+                }
+            } 
+            else if (gameState === 'CUTSCENE') {
+                cutsceneTime += dt;
+                
+                // Camera zoomt iets in op de actie met een vaste afstand
+                const cutsceneCamDist = 40;
+                const targetX = player.mesh.position.x + cutsceneCamDist * Math.sin(camAngleX) * Math.cos(camAngleY);
+                const targetY = player.mesh.position.y + cutsceneCamDist * Math.sin(camAngleY);
+                const targetZ = player.mesh.position.z + cutsceneCamDist * Math.cos(camAngleX) * Math.cos(camAngleY);
+                camera.position.lerp(new THREE.Vector3(targetX, Math.max(10, targetY), targetZ), 0.1);
+                camera.lookAt(mischiefItem.mesh.position); // Kijk naar het voorwerp
+
+                // Animaties afhankelijk van het voorwerp
+                if (mischiefItem.type === 'trash') {
+                    // Karatetrap!
+                    player.model.legR.rotation.x = -Math.PI / 3;
+                } 
+                else if (mischiefItem.type === 'stone') {
+                    // Gooien
+                    player.model.armR.rotation.x = Math.sin(cutsceneTime * Math.PI) * Math.PI; 
+                    if (cutsceneTime > 0.5 && mischiefItem.stoneMesh) {
+                        mischiefItem.stoneMesh.position.lerp(new THREE.Vector3(0, 11, -9.9), 0.15); // Vliegt naar raam
+                    }
+                } 
+                else {
+                    // Reiken / Uithalen
+                    player.model.armR.rotation.x = -Math.PI / 2;
+                }
+
+                // Na 1.5 seconden is de actie klaar
+                if (cutsceneTime > 1.5) {
+                    mischiefItem.complete();
+                    gameState = 'PLAY';
+                    cutsceneTime = 0;
+                    player.model.armR.rotation.x = 0;
+                    player.model.legR.rotation.x = 0;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+    };
+</script>
+</body>
+</html>
