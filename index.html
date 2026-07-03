@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts for an Arcade/Sci-Fi look -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;600;800&family=Space+Mono&display=swap" rel="stylesheet">
     
     <style>
         body {
@@ -28,6 +28,10 @@
 
         h1, h2, h3, .arcade-font {
             font-family: 'Orbitron', sans-serif;
+        }
+
+        .terminal-font {
+            font-family: 'Space Mono', monospace;
         }
 
         /* Neon Borders & Shadows */
@@ -113,6 +117,7 @@
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-6">
                         <a href="#" class="arcade-font px-3 py-2 text-sm text-[#00f3ff] hover:text-white hover:drop-shadow-[0_0_8px_#00f3ff] transition-all uppercase tracking-wider">Home</a>
+                        <a href="#nieuws" class="arcade-font px-3 py-2 text-sm text-[#00f3ff] hover:text-white hover:drop-shadow-[0_0_8px_#00f3ff] transition-all uppercase tracking-wider">Nieuws</a>
                         <a href="#games" class="arcade-font px-3 py-2 text-sm text-gray-400 hover:text-[#ff0055] hover:drop-shadow-[0_0_8px_#ff0055] transition-all uppercase tracking-wider">Spellen</a>
                     </div>
                 </div>
@@ -124,8 +129,7 @@
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
         
         <!-- Hero Section -->
-        <div class="relative py-20 lg:py-32 glass-panel rounded-3xl mb-24 shadow-2xl overflow-hidden neon-border-purple border-t-4 border-t-[#b026ff]">
-            <!-- Decorative Background Elements inside Hero -->
+        <div class="relative py-20 lg:py-32 glass-panel rounded-3xl mb-16 shadow-2xl overflow-hidden neon-border-purple border-t-4 border-t-[#b026ff]">
             <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-[#00f3ff] rounded-full mix-blend-screen filter blur-[100px] opacity-30"></div>
             <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-[#ff0055] rounded-full mix-blend-screen filter blur-[120px] opacity-30"></div>
             
@@ -144,6 +148,34 @@
             </div>
         </div>
 
+        <!-- NIEUWE SECTIE: Laatste Nieuws (Leest uit nieuws.txt) -->
+        <div id="nieuws" class="mb-20 relative z-10">
+            <div class="flex items-end justify-between mb-6 border-b border-white/10 pb-4">
+                <h2 class="text-3xl md:text-4xl font-black uppercase text-white arcade-font drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                    <span class="text-[#00f3ff]">Laatste</span> Nieuws
+                </h2>
+                <div class="animate-pulse flex items-center gap-2">
+                    <div class="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_#ff0000]"></div>
+                    <span class="text-red-500 text-xs font-bold uppercase tracking-widest arcade-font">Live</span>
+                </div>
+            </div>
+            
+            <div class="glass-panel p-6 rounded-xl border border-[#00f3ff]/40 shadow-[0_0_20px_rgba(0,243,255,0.15)] relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-1 h-full bg-[#00f3ff] shadow-[0_0_10px_#00f3ff]"></div>
+                <!-- Terminal effect overlay -->
+                <div class="scanlines opacity-50"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-4 text-[#00f3ff]/60 border-b border-[#00f3ff]/20 pb-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="terminal-font text-xs uppercase">karen_os/nieuws.txt</span>
+                    </div>
+                    <!-- Hier wordt de tekst uit nieuws.txt in geladen -->
+                    <pre id="news-text" class="terminal-font text-[#00f3ff] whitespace-pre-wrap text-sm md:text-base leading-relaxed">Verbinden met de server... Nieuws aan het ophalen...</pre>
+                </div>
+            </div>
+        </div>
+
         <!-- Games Grid Section -->
         <div id="games" class="mb-20 relative z-10">
             <div class="flex flex-col md:flex-row items-start md:items-end justify-between mb-12 border-b border-white/10 pb-4 gap-4">
@@ -151,7 +183,7 @@
                     <span class="text-[#ff0055]">Kies</span> Spel
                 </h2>
                 
-                <!-- Toegevoegde Zoekbalk (Nieuwe Feature!) -->
+                <!-- Zoekbalk -->
                 <div class="relative w-full md:w-64">
                     <input type="text" id="searchBar" onkeyup="searchGames()" placeholder="Zoek een spel..." class="w-full bg-[#050510]/80 border border-white/20 text-white px-4 py-2 rounded-sm focus:outline-none focus:border-[#ff0055] focus:shadow-[0_0_10px_rgba(255,0,85,0.3)] transition-all font-poppins placeholder-gray-500">
                     <svg class="w-5 h-5 absolute right-3 top-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -161,26 +193,20 @@
             <!-- Game Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10" id="gameGrid">
                 
-                <!-- Game Card 1: Kattenkwaad (Cyan Theme) -->
+                <!-- Game Card 1: Kattenkwaad -->
                 <div class="game-card cyan glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group" data-title="Kattenkwaad">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#00f3ff] shadow-[0_0_10px_#00f3ff] z-20"></div>
-                    
                     <div class="h-56 bg-black flex items-center justify-center relative overflow-hidden">
                         <img src="kattenkwaad.jpg" alt="Kattenkwaad" class="w-full h-full object-cover absolute inset-0 z-0 group-hover:scale-110 transition-all duration-700" onerror="this.style.display='none'">
                         <div class="scanlines"></div>
                     </div>
-                    
                     <div class="p-8 flex-grow flex flex-col justify-between relative z-30 bg-gradient-to-t from-black/80 to-transparent">
                         <div>
                             <div class="flex justify-between items-start mb-4">
                                 <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#00f3ff] transition-colors drop-shadow-md game-title">Kattenkwaad</h3>
-                                <span class="px-3 py-1 bg-[#00f3ff]/20 text-[#00f3ff] text-xs font-black uppercase tracking-wider rounded-sm neon-border-cyan animate-pulse">
-                                    P1 Klaar
-                                </span>
+                                <span class="px-3 py-1 bg-[#00f3ff]/20 text-[#00f3ff] text-xs font-black uppercase tracking-wider rounded-sm neon-border-cyan animate-pulse">P1 Klaar</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">
-                                Tijd voor kattenkwaad! Spring in de neonstad en begin met de chaos.
-                            </p>
+                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">Tijd voor kattenkwaad! Spring in de neonstad en begin met de chaos.</p>
                         </div>
                         <button onclick="openGame('kattenkwaad.html')" class="arcade-font w-full text-center block bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] hover:bg-[#00f3ff] hover:text-[#050510] hover:shadow-[0_0_20px_#00f3ff] font-bold py-3 px-4 transition-all uppercase tracking-widest">
                             Speel Spel
@@ -188,26 +214,20 @@
                     </div>
                 </div>
 
-                <!-- Game Card 2: Fighter Game (Pink Theme) -->
+                <!-- Game Card 2: Fighter Game -->
                 <div class="game-card pink glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group" data-title="Action Fighter">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#ff0055] shadow-[0_0_10px_#ff0055] z-20"></div>
-                    
                     <div class="h-56 bg-black flex items-center justify-center relative overflow-hidden">
                         <img src="fighter.webp" alt="Fighter Game" class="w-full h-full object-cover absolute inset-0 z-0 group-hover:scale-110 transition-all duration-700" onerror="this.style.display='none'">
                         <div class="scanlines"></div>
                     </div>
-                    
                     <div class="p-8 flex-grow flex flex-col justify-between relative z-30 bg-gradient-to-t from-black/80 to-transparent">
                         <div>
                             <div class="flex justify-between items-start mb-4">
                                 <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#ff0055] transition-colors drop-shadow-md game-title">Action Fighter</h3>
-                                <span class="px-3 py-1 bg-[#ff0055]/20 text-[#ff0055] text-xs font-black uppercase tracking-wider rounded-sm neon-border-pink animate-pulse">
-                                    P2 Klaar
-                                </span>
+                                <span class="px-3 py-1 bg-[#ff0055]/20 text-[#ff0055] text-xs font-black uppercase tracking-wider rounded-sm neon-border-pink animate-pulse">P2 Klaar</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">
-                                Stap in de ultieme digitale arena en laat je verwoestende combo's zien.
-                            </p>
+                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">Stap in de ultieme digitale arena en laat je verwoestende combo's zien.</p>
                         </div>
                         <button onclick="openGame('fighter.html')" class="arcade-font w-full text-center block bg-transparent border-2 border-[#ff0055] text-[#ff0055] hover:bg-[#ff0055] hover:text-white hover:shadow-[0_0_20px_#ff0055] font-bold py-3 px-4 transition-all uppercase tracking-widest">
                             Speel Spel
@@ -215,34 +235,24 @@
                     </div>
                 </div>
 
-                <!-- Game Card 3: Tuin Inbreek (Purple Theme - NIEUW) -->
+                <!-- Game Card 3: Tuin Inbreek -->
                 <div class="game-card purple glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group" data-title="Tuin Inbreek">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#b026ff] shadow-[0_0_10px_#b026ff] z-20"></div>
-                    
-                    <!-- Nieuw Badge -->
                     <div class="absolute top-3 -right-1 z-40">
                         <span class="bg-red-500 text-white text-xs font-black px-4 py-1.5 uppercase tracking-widest rounded-l-md shadow-[0_0_15px_#ff0000] animate-bounce block border-y border-l border-white/40">NIEUW!</span>
                     </div>
-
                     <div class="h-56 bg-black flex items-center justify-center relative overflow-hidden">
-                        <!-- De nieuwe foto -->
                         <img src="tuininbreek.jpg" alt="Tuin Inbreek" class="w-full h-full object-cover absolute inset-0 z-0 group-hover:scale-110 transition-all duration-700" onerror="this.style.display='none'">
                         <div class="scanlines"></div>
                     </div>
-                    
                     <div class="p-8 flex-grow flex flex-col justify-between relative z-30 bg-gradient-to-t from-black/80 to-transparent">
                         <div>
                             <div class="flex justify-between items-start mb-4">
                                 <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#b026ff] transition-colors drop-shadow-md game-title">Tuin Inbreek</h3>
-                                <span class="px-3 py-1 bg-[#b026ff]/20 text-[#b026ff] text-xs font-black uppercase tracking-wider rounded-sm neon-border-purple animate-pulse">
-                                    P3 Klaar
-                                </span>
+                                <span class="px-3 py-1 bg-[#b026ff]/20 text-[#b026ff] text-xs font-black uppercase tracking-wider rounded-sm neon-border-purple animate-pulse">P3 Klaar</span>
                             </div>
-                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">
-                                breek in de karen zn tuin. Probeer ongezien je missie te voltooien!
-                            </p>
+                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">breek in de karen zn tuin. Probeer ongezien je missie te voltooien!</p>
                         </div>
-                        <!-- Aangepaste bestandsnaam: tuininbreek.html (zorg dat deze klopt in je GitHub!) -->
                         <button onclick="openGame('tuininbreek.html')" class="arcade-font w-full text-center block bg-transparent border-2 border-[#b026ff] text-[#b026ff] hover:bg-[#b026ff] hover:text-white hover:shadow-[0_0_20px_#b026ff] font-bold py-3 px-4 transition-all uppercase tracking-widest">
                             Speel Spel
                         </button>
@@ -251,7 +261,6 @@
 
             </div>
             
-            <!-- Resultaat melding als je iets zoekt dat niet bestaat -->
             <p id="noResults" class="text-center text-gray-500 mt-10 hidden arcade-font tracking-widest">GEEN SPELLEN GEVONDEN...</p>
         </div>
     </main>
@@ -264,29 +273,23 @@
 
     <!-- Iframe Game Player Overlay -->
     <div id="game-overlay" class="fixed inset-0 z-50 hidden bg-[#050510] flex-col">
-        
-        <!-- CRT Monitor Effect border for iframe -->
         <div class="flex-grow w-full relative bg-black p-1 md:p-4">
             <div class="absolute inset-0 border-2 border-[#ff0055]/30 pointer-events-none z-10 shadow-[inset_0_0_50px_rgba(255,0,85,0.1)]"></div>
             <iframe id="game-iframe" class="absolute inset-0 md:inset-4 w-full md:w-[calc(100%-2rem)] h-full md:h-[calc(100%-2rem)] border-0" src=""></iframe>
         </div>
-        
-        <!-- Bottom Arcade Panel -->
         <div class="glass-panel h-20 md:h-24 flex items-center justify-center px-4 shrink-0 border-t-2 border-[#00f3ff] shadow-[0_-5px_20px_rgba(0,243,255,0.15)] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InBhdHRlcm4iIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiMwNTA1MTAiLz48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0iIzIyMiIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuKSIvPjwvc3ZnPg==')]">
-            
             <button onclick="closeGame()" class="arcade-font bg-[#ff0055] hover:bg-white hover:text-[#ff0055] text-white font-black text-xl py-3 px-10 rounded-sm transition-all shadow-[0_0_20px_rgba(255,0,85,0.6)] hover:shadow-[0_0_30px_rgba(255,255,255,0.8)] border-2 border-[#ff0055] flex items-center gap-3 uppercase tracking-widest hover:scale-105 active:scale-95">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Sluiten
             </button>
-            
         </div>
     </div>
 
     <script>
-        // Set the current year in the footer dynamically
+        // Set year
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        // Game Player JavaScript Logic
+        // Game Player Logic
         const gameOverlay = document.getElementById('game-overlay');
         const gameIframe = document.getElementById('game-iframe');
 
@@ -304,14 +307,13 @@
             document.body.style.overflow = '';
         }
 
-        // --- NIEUWE FUNCTIE: Zoekbalk Filter Logica ---
+        // Zoekbalk
         function searchGames() {
             let input = document.getElementById('searchBar').value.toLowerCase();
             let cards = document.getElementsByClassName('game-card');
             let visibleCount = 0;
             let noResultsMsg = document.getElementById('noResults');
 
-            // Loop door alle game cards en verberg degene die niet matchen
             for (let i = 0; i < cards.length; i++) {
                 let title = cards[i].getAttribute('data-title').toLowerCase();
                 if (title.includes(input)) {
@@ -321,14 +323,37 @@
                     cards[i].style.display = "none";
                 }
             }
-
-            // Laat een melding zien als er niks gevonden is
             if(visibleCount === 0) {
                 noResultsMsg.style.display = "block";
             } else {
                 noResultsMsg.style.display = "none";
             }
         }
+
+        // --- NIEUWE FUNCTIE: Nieuws inladen ---
+        async function fetchNieuws() {
+            const nieuwsElement = document.getElementById('news-text');
+            try {
+                // Vraag het bestand 'nieuws.txt' op. (De ?v= helpt tegen de cache zodat je altijd het nieuwste ziet)
+                const response = await fetch('nieuws.txt?v=' + new Date().getTime());
+                if (response.ok) {
+                    const tekst = await response.text();
+                    // Controleer of het bestand leeg is
+                    if(tekst.trim() === "") {
+                        nieuwsElement.innerText = "Geen nieuw nieuws vandaag. Tijd om te gamen!";
+                    } else {
+                        nieuwsElement.innerText = tekst;
+                    }
+                } else {
+                    nieuwsElement.innerText = ">_ [ERROR 404]\nKan het nieuws niet laden.\nZorg ervoor dat er een bestand genaamd 'nieuws.txt' in je GitHub repository staat!";
+                }
+            } catch (error) {
+                nieuwsElement.innerText = ">_ [SYSTEM ERROR]\nVerbinding met de server mislukt. Probeer het later opnieuw.";
+            }
+        }
+
+        // Laad het nieuws zodra de website opent
+        window.onload = fetchNieuws;
     </script>
 </body>
 </html>
