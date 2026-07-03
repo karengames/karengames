@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Achtertuin Infiltratie 3D - Missie Editie</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+  <style>
+    :root { --win-video-url: "https://drive.google.com/file/d/1n2MQfPXYJECrufISHWDzThARkpEgvb9J/preview"; }
+    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:'Inter',sans-serif; background:#0f172a; user-select:none; -webkit-user-select:none; }
+    #webgl-container { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; }
+    #hud-container { position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:1rem; }
+    .glass-panel { background:rgba(15,23,42,0.95); border:1px solid rgba(255,255,255,0.15); pointer-events:auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .action-button { pointer-events:auto; transition:all 0.2s; } .action-button:active { transform:scale(0.95); }
+    #warning-flash { position:absolute; inset:0; background:radial-gradient(circle,transparent 20%,rgba(220,38,38,0.7) 100%); z-index:20; pointer-events:none; opacity:0; transition:opacity 0.15s; }
+    .reticle { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:6px; height:6px; background:rgba(255,255,255,0.5); border-radius:50%; pointer-events:none; z-index:5; box-shadow:0 0 10px rgba(0,0,0,0.5); }
+    .dpad-btn { background:rgba(30,41,59,0.9); border:1px solid rgba(255,255,255,0.15); color:#f1f5f9; display:flex; align-items:center; justify-content:center; border-radius:0.5rem; width:3rem; height:3rem; transition:all 0.15s; pointer-events:auto; }
+    .dpad-btn:active { background:#10b981; transform:scale(0.85); color:#000; }
+    #jumpscare-alert { position:absolute; top:40%; left:50%; transform:translate(-50%,-50%) scale(0.5); font-size:4rem; font-weight:900; color:#ef4444; text-shadow:0 10px 20px rgba(0,0,0,0.9); z-index:30; opacity:0; pointer-events:none; text-transform:uppercase; transition:all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    #jumpscare-alert.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    #zone-legend { position:absolute; top:80px; right:16px; z-index:15; pointer-events:none; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:10px; color:#cbd5e1; margin-bottom:4px; font-family:monospace; }
+    .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; box-shadow:inset 0 0 4px rgba(0,0,0,0.5); }
+    #win-video-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; gap:1rem; }
+    .camera-status-badge { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:25; padding:6px 16px; border-radius:30px; font-size:11px; font-weight:900; letter-spacing:2px; opacity:0; transition:opacity 0.2s; pointer-events:none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    #cam-detect-alert { background:linear-gradient(90deg, #b91c1c, #dc2626); color:white; }
+    
+    /* Level Intro Animation */
+    #level-toast { position:absolute; top:30%; left:50%; transform:translate(-50%, -50%) scale(0.8); z-index:40; opacity:0; pointer-events:none; text-align:center; transition:all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    #level-toast.show { opacity:1; transform:translate(-50%, -50%) scale(1); }
+  </style>
+</head>
+<body>
+  <script>
+    const WIN_VIDEO_URL = "https://drive.google.com/file/d/1n2MQfPXYJECrufISHWDzThARkpEgvb9J/preview";
+  </script>
+
+  <div id="webgl-container"></div>
+  <div class="reticle"></div>
+  <div id="warning-flash"></div>
+  <div id="jumpscare-alert">⚠ GESPOT ⚠</div>
+  <div class="camera-status-badge" id="cam-detect-alert">🔴 CAMERA DETECTIE!</div>
+  
+  <div id="level-toast">
+    <div class="text-emerald-400 font-black text-5xl tracking-widest uppercase drop-shadow-lg" id="toast-title">LEVEL 1</div>
+    <div class="text-slate-200 font-bold text-sm tracking-widest mt-2 bg-black/50 px-4 py-1 rounded-full inline-block" id="toast-subtitle">De Verkenning</div>
+  </div>
+
+  <div id="zone-legend" class="glass-panel rounded-xl p-3" style="min-width:160px">
+    <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-700 pb-1">Legenda</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Actie / Zoeken</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Dekking (Veilig)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff0000"></div> Camera / Robot</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div> Oma (Gevaar)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a855f7"></div> Doel (Achterdeur)</div>
+  </div>
+
+  <div id="hud-container" class="max-w-7xl mx-auto w-full">
+    <header class="flex justify-between items-start pointer-events-none w-full">
+      <div class="glass-panel rounded-xl p-3 flex items-center space-x-3 pointer-events-auto">
+        <span class="text-emerald-400 text-2xl animate-pulse"><i class="fa-solid fa-user-ninja"></i></span>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-black text-xs tracking-wider uppercase text-slate-100">Infiltratie 3D</h1>
+            <span id="levelBadge" class="bg-indigo-600 px-2 py-0.5 rounded text-[9px] font-black text-white tracking-widest shadow-lg shadow-indigo-500/30">LVL 1</span>
+          </div>
+          <p class="text-[9px] text-emerald-500/70 font-mono font-bold" id="levelDescHeader">Missie Gestart</p>
+        </div>
+      </div>
+      <div class="flex gap-2 pointer-events-auto">
+        <button id="camToggle" class="glass-panel px-3 py-2 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shadow-lg"><i class="fa-solid fa-eye text-emerald-400" id="camIcon"></i> <span id="camText" class="hidden sm:inline">Vrij Kijken</span></button>
+        <button id="soundToggle" class="glass-panel px-3 py-2 text-slate-200 hover:text-white rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg"><i class="fa-solid fa-volume-mute text-red-400" id="soundIcon"></i></button>
+        <button onclick="showInstructions()" class="glass-panel px-3 py-2 text-slate-200 hover:text-white rounded-xl text-xs transition-all shadow-lg"><i class="fa-solid fa-list-check"></i></button>
+      </div>
+    </header>
+
+    <div class="flex justify-between items-end w-full pointer-events-none">
+      <div class="glass-panel p-3 rounded-2xl shadow-xl flex flex-col items-center gap-1 pointer-events-auto scale-90 sm:scale-100 origin-bottom-left">
+        <div class="flex flex-col items-center gap-1">
+          <button id="btn-up" class="dpad-btn"><i class="fa-solid fa-chevron-up"></i></button>
+          <div class="flex gap-1">
+            <button id="btn-left" class="dpad-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button id="btn-down" class="dpad-btn"><i class="fa-solid fa-chevron-down"></i></button>
+            <button id="btn-right" class="dpad-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-4 mt-auto w-full">
+      <div class="glass-panel rounded-xl p-4 shadow-xl w-full md:w-2/3 flex flex-col gap-2.5 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -z-10"></div>
+        <div id="gameLog" class="h-20 overflow-y-auto text-xs font-mono text-emerald-400/90 space-y-1 pr-2">
+          <div>[SYS]: Systeem initialisatie...</div>
+        </div>
+        <div id="actionArea" class="pt-3 border-t border-slate-700/50 flex flex-wrap gap-2 items-center justify-center md:justify-start min-h-[44px]">
+          <div class="text-slate-400 text-xs italic"><i class="fa-solid fa-shoe-prints animate-pulse text-emerald-500 mr-1"></i> Zoek naar oplichtende zones...</div>
+        </div>
+      </div>
+      <div class="glass-panel rounded-xl p-4 shadow-xl w-full md:w-1/3 flex flex-col justify-between gap-3">
+        <div>
+          <div class="flex justify-between text-xs font-bold mb-1"><span class="text-slate-300 uppercase tracking-wider">Argwaan Level</span><span id="alertPct" class="text-emerald-400 font-mono">0%</span></div>
+          <div class="w-full bg-slate-950 rounded-full h-3 border border-slate-800 p-0.5"><div id="alertProgressBar" class="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full w-[0%] transition-all duration-300 rounded-full"></div></div>
+        </div>
+        <div class="flex justify-between items-center text-xs bg-slate-900/50 p-2 rounded-lg border border-slate-700/50"><span class="text-slate-400">Locatie:</span><span id="currentLocName" class="font-extrabold text-emerald-400">Tafel</span></div>
+        <div>
+          <div class="grid grid-cols-2 gap-2">
+            <div id="inv-bobbypin" class="bg-slate-900/80 border border-slate-800 p-2 rounded-lg flex items-center justify-center gap-2 opacity-30 transition-all"><i class="fa-solid fa-wrench text-amber-500"></i><span class="text-[10px] text-slate-400 font-bold uppercase">Clip</span></div>
+            <div id="inv-key" class="bg-slate-900/80 border border-slate-800 p-2 rounded-lg flex items-center justify-center gap-2 opacity-30 transition-all"><i class="fa-solid fa-key text-yellow-400"></i><span class="text-[10px] text-slate-400 font-bold uppercase">Sleutel</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intro Modal -->
+  <div id="introModal" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-700 max-w-lg w-[90%] rounded-3xl p-8 shadow-xl text-center relative overflow-hidden">
+      <div class="absolute -top-16 -right-16 text-indigo-500/10 text-[12rem]"><i class="fa-solid fa-user-secret"></i></div>
+      <div class="w-20 h-20 bg-gradient-to-br from-emerald-900 to-emerald-950 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 relative z-10 shadow-lg shadow-emerald-500/20"><i class="fa-solid fa-mask text-emerald-400 text-4xl"></i></div>
+      <h2 class="text-3xl font-black text-white tracking-wider mb-2 relative z-10">INFILTRATIE 3D</h2>
+      <p class="text-xs text-emerald-400 uppercase tracking-widest mb-6 font-bold">Operation: Achtertuin</p>
+      
+      <div class="text-sm text-slate-300 mb-6 bg-slate-950/80 border border-slate-800 p-5 rounded-2xl text-left space-y-3 relative z-10">
+        <p class="text-center font-bold text-slate-200 border-b border-slate-800 pb-2 mb-3">Welkom Agent. Je missie bestaat uit 4 levels.</p>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="flex items-start gap-2"><i class="fa-solid fa-person-walking text-emerald-500 mt-0.5 text-lg"></i> <span>Beweeg met <kbd class="px-1 bg-slate-800 rounded">WASD</kbd> of knoppen.</span></div>
+          <div class="flex items-start gap-2"><i class="fa-solid fa-video text-red-500 mt-0.5 text-lg"></i> <span>Ontwijk camera's & robots!</span></div>
+          <div class="flex items-start gap-2"><i class="fa-solid fa-shield text-blue-500 mt-0.5 text-lg"></i> <span>Schuil in blauwe zones.</span></div>
+          <div class="flex items-start gap-2"><i class="fa-solid fa-door-open text-purple-500 mt-0.5 text-lg"></i> <span>Bereik de paarse achterdeur.</span></div>
+        </div>
+      </div>
+      <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black rounded-xl uppercase tracking-widest text-sm transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] relative z-10 transform hover:-translate-y-1">Missie Starten</button>
+    </div>
+  </div>
+
+  <!-- Level Transition Modal -->
+  <div id="levelTransitionModal" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-slate-900 border-2 border-indigo-500 max-w-md w-[90%] rounded-3xl p-8 shadow-xl text-center">
+      <div class="w-20 h-20 bg-indigo-900/50 border-2 border-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce"><i class="fa-solid fa-check-double text-indigo-400 text-4xl"></i></div>
+      <h2 id="ltTitle" class="text-2xl font-black text-white tracking-widest uppercase mb-2">LEVEL VOLTOOID</h2>
+      <p id="ltDesc" class="text-sm text-slate-400 mb-6 bg-slate-950 p-4 rounded-xl border border-slate-800"></p>
+      <button onclick="nextLevel()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase tracking-widest text-sm transition-all shadow-lg shadow-indigo-600/30">Start Volgend Level <i class="fa-solid fa-arrow-right ml-2"></i></button>
+    </div>
+  </div>
+
+  <!-- Minigames -->
+  <div id="minigamePanel" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-slate-900 border-2 border-emerald-500 max-w-sm w-full rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+      <h3 id="minigameTitle" class="text-base font-black text-center text-emerald-400 tracking-widest uppercase">Actie</h3>
+      <div id="minigameContainer" class="bg-slate-950 p-5 rounded-xl flex flex-col items-center justify-center min-h-[180px] border border-slate-800"></div>
+      <button onclick="cancelMinigame()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider rounded-xl transition-colors">Afbreken</button>
+    </div>
+  </div>
+
+  <!-- Win Video Overlay (Finale) -->
+  <div id="win-video-overlay" class="bg-slate-950">
+    <div class="text-center bg-slate-900 p-8 rounded-3xl border border-emerald-500 shadow-xl max-w-lg w-[90%]">
+      <div class="text-5xl font-black text-emerald-400 mb-4 animate-pulse"><i class="fa-solid fa-trophy"></i></div>
+      <div class="text-3xl font-black text-white mb-2 tracking-wider">CAMPAGNE VOLTOOID!</div>
+      <div class="text-slate-400 text-sm mb-8 leading-relaxed">Je hebt alle bewaking ontweken, de bloemperken omgespit en alle sloten gekraakt. Je bent de ultieme Infiltrant!</div>
+      <a id="win-video-link" href="#" target="_blank" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl text-white font-black uppercase tracking-widest inline-block shadow-[0_0_30px_rgba(147,51,234,0.4)] transform transition hover:scale-105"><i class="fa-solid fa-play mr-2"></i> Bekijk Beloning</a>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="endModal" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-slate-900 border-2 border-red-600 max-w-md w-[90%] rounded-3xl p-8 shadow-xl text-center">
+      <div id="endIcon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-500 bg-red-950/50 text-4xl"><i class="fa-solid fa-skull text-red-500"></i></div>
+      <h2 id="endTitle" class="text-3xl font-black tracking-widest uppercase mb-3 text-white">GEPAKT!</h2>
+      <p id="endDesc" class="text-sm text-slate-300 bg-slate-950 p-4 rounded-xl border border-red-900/50 mb-6 font-mono"></p>
+      <button onclick="resetLevel()" class="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl uppercase tracking-widest text-sm transition-all shadow-lg shadow-red-600/30"><i class="fa-solid fa-rotate-right mr-2"></i> Missie Herstarten</button>
+    </div>
+  </div>
+
+  <script>
+    // ========== LEVELS CONFIGURATIE ==========
+    const levelData = [
+      {
+        title: "Level 1: Verkenning",
+        subtitle: "De Kust is Bijna Veilig",
+        desc: "Oefen je sluipvaardigheden. Er is geen bewaking, alleen één domme camera. Blijf uit de rode cirkel en loop rechtdoor naar de deur.",
+        timeOfDay: 'day', // fel licht
+        doorRequirement: 'none',
+        cameras: [ { x: 2.0, y: 3, z: -2.0, speed: 0.015, radius: 2.2 } ],
+        omas: [],
+        mowers: [],
+        zones: ['door']
+      },
+      {
+        title: "Level 2: Wachter Oma",
+        subtitle: "Ze Patrouilleert...",
+        desc: "Oma is wakker! Blijf uit haar zicht en schuil in de blauwe zone (Heg). Zoek de sleutel in de bloemenbak (Graven) om de deur te openen.",
+        timeOfDay: 'day',
+        doorRequirement: 'key',
+        cameras: [ 
+          { x: 5.0, y: 3.0, z: 2.0, speed: 0.025, radius: 2.8 },
+          { x: -1.0, y: 3.5, z: -10.5, speed: 0.018, radius: 2.8 }
+        ],
+        omas: [ { x: 3.0, zStart: -12, zEnd: 2, speed: 1.5, startDir: 1 } ],
+        mowers: [],
+        zones: ['border', 'hedge', 'door']
+      },
+      {
+        title: "Level 3: Robot Aanval",
+        subtitle: "Lockpick & Ren",
+        desc: "De deur heeft een extra slot (paperclip op tafel zoeken). PAS OP: Er rijdt nu ook een dolgeslagen robotmaaier rond! Sta je in een blauwe dekking? Dan is hij in de war.",
+        timeOfDay: 'sunset', // oranje licht
+        doorRequirement: 'bobbypin',
+        cameras: [
+          { x: 2.0, y: 3.5, z: -9.0, speed: 0.02, radius: 3.0 },
+          { x: 3.5, y: 2.5, z: 3.0, speed: 0.03, radius: 2.5 }
+        ],
+        omas: [ { x: 3.0, zStart: -12, zEnd: 4, speed: 2.2, startDir: -1 } ],
+        mowers: [ { x: 6, z: 2, speed: 2.0 } ],
+        zones: ['table', 'chair', 'door']
+      },
+      {
+        title: "Level 4: Nachtmerrie",
+        subtitle: "Infiltratie Zero",
+        desc: "Pikkedonker. Oma's met zaklampen én meerdere robotmaaiers jagen op je. Je hebt ALLES nodig: de sleutel én de paperclip. Blijf rennen!",
+        timeOfDay: 'night', // donker, zaklampen vallen op
+        doorRequirement: 'both',
+        cameras: [
+          { x: 6.0, y: 3.0, z: 2.0, speed: 0.03, radius: 3.2 },
+          { x: 3.0, y: 3.5, z: -10.0, speed: 0.025, radius: 3.2 },
+          { x: -2.5, y: 2.5, z: -2.0, speed: 0.035, radius: 2.5 }
+        ],
+        omas: [
+          { x: 4.5, zStart: -14, zEnd: 2, speed: 2.5, startDir: 1 },
+          { x: 0.5, zStart: -10, zEnd: 8, speed: 1.8, startDir: -1 }
+        ],
+        mowers: [ 
+          { x: -3, z: 0, speed: 2.2 }, 
+          { x: 6, z: 6, speed: 1.8 } 
+        ],
+        zones: ['table', 'border', 'hedge', 'chair', 'door']
+      }
+    ];
+
+    // Details voor de zones (Aangepast aan de nieuwe layout)
+    const zoneDetails = {
+      'table': { x: 1.2, z: 12.0, name: 'Zwarte Tafel', color: 0x10b981, inner: 0.7, outer: 0.9 }, // Verplaatst naar het looppad!
+      'hedge': { x: -1.0, z: 2.0, name: '🛡 Heg (DEKKING)', color: 0x3b82f6, inner: 0.55, outer: 0.8 }, // Verplaatst naar het looppad!
+      'border': { x: -1.0, z: 7.0, name: '🌿 Bloemenperk', color: 0x10b981, inner: 0.6, outer: 0.8 }, // Verplaatst naar het looppad!
+      'chair': { x: 0.0, z: -13.5, name: '🛡 Patio Stoel (DEKKING)', color: 0x3b82f6, inner: 0.55, outer: 0.8 }, // Verplaatst naar het looppad!
+      'door': { x: 2.0, z: -15.5, name: '🎯 ACHTERDEUR', color: 0xa855f7, inner: 0.9, outer: 1.3 }
+    };
+
+    // ========== GAME STATE ==========
+    const state = {
+      currentLevel: 0,
+      isStarted: false, isCaught: false, soundEnabled: false,
+      alertLevel: 0, currentLocation: 'free',
+      inventory: { bobbypin: false, key: false },
+      searchedPot: false, searchedTable: false,
+      isMinigameActive: false, cameraMode: 'free',
+      mouseRotate: { x: 0, y: -0.2 }, isMouseDown: false,
+      prevMousePos: { x: 0, y: 0 }, lockPhase: 0, digTarget: 0, digTraps: [],
+      lpInterval: null, camDetectCooldown: 0
+    };
+
+    const keysPressed = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+    // Dynamische object lijsten (worden gecleared per level)
+    let dynamicSceneObjects = [];
+    let securityCameras = [];
+    let omasList = [];
+    let mowersList = [];
+    let zoneRings = [];
+
+    // ========== AUDIO ==========
+    let audioInited = false, synths = {};
+    function initAudio() {
+      if (audioInited) return;
+      try {
+        synths.click = new Tone.MetalSynth({ envelope: { attack: 0.001, decay: 0.04 } }).toDestination(); synths.click.volume.value = -18;
+        synths.step = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.02, decay: 0.15 } }).toDestination(); synths.step.volume.value = -14;
+        synths.alert = new Tone.PolySynth().toDestination(); synths.alert.volume.value = -10;
+        synths.omaStep = new Tone.MembraneSynth().toDestination(); synths.omaStep.volume.value = -8;
+        synths.success = new Tone.PolySynth().toDestination(); synths.success.volume.value = -6;
+        synths.siren = new Tone.Oscillator(400, "sine").toDestination(); synths.siren.volume.value = -12;
+        audioInited = true;
+      } catch (e) {}
+    }
+    function playSound(type) {
+      if (!state.soundEnabled || !audioInited) return;
+      try {
+        if (type === 'click') synths.click.triggerAttackRelease("32n");
+        if (type === 'step') synths.step.triggerAttackRelease("16n");
+        if (type === 'alert') synths.alert.triggerAttackRelease(["C4","Eb4","Gb4"], "8n");
+        if (type === 'oma') synths.alert.triggerAttackRelease(["C3","Db3","G2"], "4n");
+        if (type === 'success') synths.success.triggerAttackRelease(["C4","E4","G4","C5"], "2n");
+      } catch (e) {}
+    }
+    document.getElementById('soundToggle').addEventListener('click', () => {
+      state.soundEnabled = !state.soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (state.soundEnabled) { initAudio(); Tone.start(); icon.className = "fa-solid fa-volume-high text-emerald-400"; }
+      else icon.className = "fa-solid fa-volume-mute text-red-400";
+    });
+
+    function logSys(msg, color="text-emerald-400") {
+      const log = document.getElementById('gameLog');
+      const d = new Date();
+      const t = `${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+      log.innerHTML += `<div><span class="text-slate-500">[${t}]</span> <span class="${color}">${msg}</span></div>`;
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // ========== INPUTS ==========
+    window.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (k in keysPressed) keysPressed[k] = true;
+      if (e.key in keysPressed) keysPressed[e.key] = true;
+    });
+    window.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if (k in keysPressed) keysPressed[k] = false;
+      if (e.key in keysPressed) keysPressed[e.key] = false;
+    });
+    ['btn-up','btn-down','btn-left','btn-right'].forEach(id => {
+      const btn = document.getElementById(id);
+      const keysMap = {'btn-up':['w'],'btn-down':['s'],'btn-left':['a'],'btn-right':['d']};
+      const press = (e) => { e.preventDefault(); keysMap[id].forEach(k=>keysPressed[k]=true); };
+      const release = (e) => { e.preventDefault(); keysMap[id].forEach(k=>keysPressed[k]=false); };
+      btn.addEventListener('touchstart', press, {passive:false});
+      btn.addEventListener('touchend', release, {passive:false});
+      btn.addEventListener('mousedown', press);
+      btn.addEventListener('mouseup', release);
+      btn.addEventListener('mouseleave', release);
+    });
+
+    // ========== THREE.JS SCENE SETUP ==========
+    const scene = new THREE.Scene();
+
+    // --- ULTRA ANTI-LAG HACK ---
+    THREE.MeshStandardMaterial = THREE.MeshLambertMaterial; 
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 150);
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(0.7); 
+    renderer.shadowMap.enabled = false; 
+    document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+    // Belichting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambientLight);
+    const skylight = new THREE.DirectionalLight(0xffffff, 0.5);
+    skylight.position.set(5, 25, 8);
+    skylight.castShadow = false; 
+    scene.add(skylight);
+
+    // Textures genereren (Aangepast aan de echte foto)
+    function makeTex(type, w=256, h=256) {
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      if (type === 'tiles') { // Grindtegels met bruine vierkantjes
+        ctx.fillStyle = '#b5b2ad'; ctx.fillRect(0,0,w,h); // Basis grijs
+        for(let i=0;i<600;i++){ ctx.fillStyle = Math.random()>.5?'#8a8782':'#ffffff'; ctx.fillRect(Math.random()*w,Math.random()*h,2,2); } // Grind
+        ctx.fillStyle = '#8f574d'; // Bruine accenttegels
+        for(let y=0; y<h; y+=128) {
+           for(let x=0; x<w; x+=128) {
+              if ((x/128 + y/128) % 2 === 0) { ctx.fillRect(x+10, y+10, 108, 108); }
+           }
+        }
+      } else if (type === 'brick') { // Huissteen
+        ctx.fillStyle = '#9c5b45'; ctx.fillRect(0,0,w,h);
+        for(let y=0;y<h;y+=16){ let off=(y/16)%2===0?0:16; ctx.strokeStyle='#b8aba4'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); for(let x=-16;x<w;x+=32){ if(Math.random()>.2){ctx.fillStyle=Math.random()>.5?'#80412d':'#ab6046'; ctx.fillRect(x+off+2,y+2,28,12);} } }
+      } else if (type === 'hedge') { // Groene Heg
+        ctx.fillStyle = '#1e3d14'; ctx.fillRect(0,0,w,h);
+        for(let i=0;i<300;i++){ctx.fillStyle=Math.random()>.5?'#2d5a1e':'#41822c'; ctx.fillRect(Math.random()*w,Math.random()*h,6,12);}
+      } else if (type === 'blackwood') { // Zwarte schutting
+        ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0,0,w,h);
+        for(let i=0;i<16;i++){ctx.fillStyle='#0f0f0f'; ctx.fillRect(i*32+2,0,2,h);}
+      } else if (type === 'soil') { // Donkere aarde border
+        ctx.fillStyle = '#2b1c10'; ctx.fillRect(0,0,w,h);
+        for(let i=0;i<200;i++){ctx.fillStyle=Math.random()>.5?'#3d2b1e':'#1c1007'; ctx.fillRect(Math.random()*w,Math.random()*h,5,5);}
+      }
+      const tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; return tex;
+    }
+    
+    const texTiles = makeTex('tiles'); texTiles.repeat.set(4, 12);
+    const texHedge = makeTex('hedge'); texHedge.repeat.set(1, 4);
+    const texBrick = makeTex('brick'); texBrick.repeat.set(6, 4);
+    const texBlackWood = makeTex('blackwood'); texBlackWood.repeat.set(6, 1);
+    const texSoil = makeTex('soil'); texSoil.repeat.set(1, 8);
+
+    // ========== STATISCHE OMGEVING (Laden bij start - 1 op 1 met foto) ==========
+    function buildStaticEnvironment() {
+      // Bestrating grond
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(24, 60), new THREE.MeshLambertMaterial({map:texTiles}));
+      ground.rotation.x = -Math.PI/2; ground.position.y = -0.05; scene.add(ground);
+
+      // Rechter zwarte schutting (loopt helemaal door)
+      const rightFence = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.5, 45), new THREE.MeshLambertMaterial({map:texBlackWood}));
+      rightFence.position.set(7.5, 1.75, 0); scene.add(rightFence);
+
+      // Linkerzijde: Eerst zwarte schutting, dan heg
+      const leftFenceFront = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.0, 10), new THREE.MeshLambertMaterial({map:texBlackWood}));
+      leftFenceFront.position.set(-5.5, 1.5, 15); scene.add(leftFenceFront);
+      
+      const hedge = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4.0, 30), new THREE.MeshLambertMaterial({map:texHedge}));
+      hedge.position.set(-4.5, 2.0, -5); scene.add(hedge);
+
+      // Bloemenperk / Border langs de heg
+      const borderSoil = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.15, 29), new THREE.MeshLambertMaterial({map:texSoil}));
+      borderSoil.position.set(-3.0, 0.05, -5); scene.add(borderSoil);
+      const borderEdge = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 29.2), new THREE.MeshLambertMaterial({color:0x555555})); // Stenen randje
+      borderEdge.position.set(-2.0, 0.05, -5); scene.add(borderEdge);
+      
+      // Plantjes in de border
+      for(let z = -18; z < 8; z+=1.5) {
+         const plant = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 4), new THREE.MeshLambertMaterial({color:0x336622}));
+         plant.position.set(-3.0 + Math.random()*0.4, 0.4, z + Math.random()*0.5);
+         scene.add(plant);
+      }
+
+      // Huis op de achtergrond
+      const houseWall = new THREE.Mesh(new THREE.BoxGeometry(16, 10, 5), new THREE.MeshLambertMaterial({map:texBrick}));
+      houseWall.position.set(1, 5, -19.5); scene.add(houseWall);
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(17, 3, 6), new THREE.MeshLambertMaterial({color:0x333333}));
+      roof.position.set(1, 11.5, -19.5); scene.add(roof);
+
+      // Grote glazen deur/raamkozijn (Wit kozijn, donker glas)
+      const windowFrame = new THREE.Mesh(new THREE.BoxGeometry(5.2, 4.2, 0.2), new THREE.MeshLambertMaterial({color:0xffffff}));
+      windowFrame.position.set(2, 2.1, -16.9); scene.add(windowFrame);
+      const windowGlass = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.8, 0.3), new THREE.MeshLambertMaterial({color:0x111a22}));
+      windowGlass.position.set(2, 2.1, -16.9); scene.add(windowGlass);
+
+      // Patio stoeltjes achterin (rieten stijl)
+      const patioTable = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.8, 16), new THREE.MeshLambertMaterial({color:0xaaaaaa}));
+      patioTable.position.set(2, 0.4, -13.5); scene.add(patioTable);
+      const patioChair1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshLambertMaterial({color:0x8b7355}));
+      patioChair1.position.set(3.2, 0.4, -13.5); scene.add(patioChair1);
+      const patioChair2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshLambertMaterial({color:0x8b7355}));
+      patioChair2.position.set(0.8, 0.4, -13.5); scene.add(patioChair2);
+
+      // Voorgrond: De Ronde Zwarte Tafel
+      const startTable = new THREE.Group();
+      const tableTop = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.08, 24), new THREE.MeshLambertMaterial({color:0x1a1a1a}));
+      tableTop.position.y = 0.95; startTable.add(tableTop);
+      const tableLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.95), new THREE.MeshLambertMaterial({color:0x1a1a1a}));
+      tableLeg.position.y = 0.47; startTable.add(tableLeg);
+      const tableBase = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05), new THREE.MeshLambertMaterial({color:0x1a1a1a}));
+      tableBase.position.y = 0.02; startTable.add(tableBase);
+      // Gekleurd bloempotje op tafel
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.3), new THREE.MeshLambertMaterial({color:0x6e5246}));
+      pot.position.set(0, 1.15, 0); startTable.add(pot);
+      const f1 = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshLambertMaterial({color:0xff8800})); f1.position.set(-0.1, 1.35, 0); startTable.add(f1); // oranje
+      const f2 = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshLambertMaterial({color:0x3333ff})); f2.position.set(0.1, 1.35, -0.1); startTable.add(f2); // paars/blauw
+      const f3 = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshLambertMaterial({color:0xffdd00})); f3.position.set(0, 1.35, 0.15); startTable.add(f3); // geel
+      startTable.position.set(-1.0, 0, 12.0); scene.add(startTable);
+
+      // Voorgrond: Grijze Tuinstoelen (Lounge)
+      function createLoungeChair(x, z, rot) {
+         const group = new THREE.Group();
+         const seat = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.4), new THREE.MeshLambertMaterial({color:0x2b3036}));
+         seat.position.y = 0.5; seat.rotation.x = -0.1; group.add(seat);
+         const back = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 0.1), new THREE.MeshLambertMaterial({color:0x2b3036}));
+         back.position.set(0, 1.1, -0.6); back.rotation.x = -0.3; group.add(back);
+         const armL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 1.4), new THREE.MeshLambertMaterial({color:0x3a4047}));
+         armL.position.set(-0.65, 0.7, 0); group.add(armL);
+         const armR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 1.4), new THREE.MeshLambertMaterial({color:0x3a4047}));
+         armR.position.set(0.65, 0.7, 0); group.add(armR);
+         group.position.set(x, 0, z); group.rotation.y = rot; scene.add(group);
+      }
+      createLoungeChair(-3.0, 14.5, Math.PI/4); // Stoel links
+      createLoungeChair(2.5, 10.5, -Math.PI/6); // Stoel rechts
+    }
+    buildStaticEnvironment();
+
+    // Collision boxes voor vaste omgeving aangepast aan nieuwe layout
+    const collisionBoxes = [
+      { xMin: -8, xMax: -4.5, zMin: -22, zMax: 22 }, // Heg / Linker schutting
+      { xMin: -4.5, xMax: -1.8, zMin: -22, zMax: 10 }, // Bloemenborder
+      { xMin: 7.2, xMax: 10, zMin: -22, zMax: 22 }, // Rechter schutting
+      { xMin: -8, xMax: 10, zMin: -22, zMax: -16.8 }, // Huis achterin
+      { xMin: -2.2, xMax: 0.2, zMin: 10.8, zMax: 13.2 }, // Ronde Zwarte Tafel
+      { xMin: -4.0, xMax: -2.0, zMin: 13.0, zMax: 16.0 }, // Lounge stoel links
+      { xMin: 1.5, xMax: 3.5, zMin: 9.0, zMax: 12.0 }, // Lounge stoel rechts
+      { xMin: 1.0, xMax: 4.0, zMin: -14.5, zMax: -12.5 } // Patio set achterin
+    ];
+    function collidesAt(x, z) {
+      for (const b of collisionBoxes) if (x > b.xMin && x < b.xMax && z > b.zMin && z < b.zMax) return true;
+      return false;
+    }
+
+    // ========== SPELER (MEER REALISTISCH) ==========
+    const playerMesh = new THREE.Group();
+
+    // Lichaam (Torso)
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.7, 16), new THREE.MeshLambertMaterial({color:0x059669}));
+    torso.position.y = 0.85; 
+    playerMesh.add(torso);
+
+    // Riem
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.1, 16), new THREE.MeshLambertMaterial({color:0x111111}));
+    belt.position.y = 0.55;
+    playerMesh.add(belt);
+
+    // Hoofd & Nek
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.15), new THREE.MeshLambertMaterial({color:0xffccaa}));
+    neck.position.y = 1.25;
+    playerMesh.add(neck);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), new THREE.MeshLambertMaterial({color:0xffccaa}));
+    head.position.y = 1.45;
+    playerMesh.add(head);
+
+    // Ninja masker over het hoofd
+    const mask = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.25, 16), new THREE.MeshLambertMaterial({color:0x111111}));
+    mask.position.y = 1.45;
+    playerMesh.add(mask);
+
+    // Boze ogen in het masker
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.05), new THREE.MeshLambertMaterial({color:0xffffff}));
+    eyeR.position.set(0.08, 1.48, 0.2); eyeR.rotation.z = -0.1;
+    playerMesh.add(eyeR);
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.05), new THREE.MeshLambertMaterial({color:0xffffff}));
+    eyeL.position.set(-0.08, 1.48, 0.2); eyeL.rotation.z = 0.1;
+    playerMesh.add(eyeL);
+
+    // Benen met voeten
+    const leftLeg = new THREE.Group();
+    leftLeg.position.set(-0.12, 0.5, 0); // Heupgewricht
+    const lThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.5, 12), new THREE.MeshLambertMaterial({color:0x111111}));
+    lThigh.position.y = -0.25;
+    leftLeg.add(lThigh);
+    const lFoot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.2), new THREE.MeshLambertMaterial({color:0x000000}));
+    lFoot.position.set(0, -0.5, 0.05);
+    leftLeg.add(lFoot);
+    playerMesh.add(leftLeg);
+
+    const rightLeg = new THREE.Group();
+    rightLeg.position.set(0.12, 0.5, 0); // Heupgewricht
+    const rThigh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.5, 12), new THREE.MeshLambertMaterial({color:0x111111}));
+    rThigh.position.y = -0.25;
+    rightLeg.add(rThigh);
+    const rFoot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.2), new THREE.MeshLambertMaterial({color:0x000000}));
+    rFoot.position.set(0, -0.5, 0.05);
+    rightLeg.add(rFoot);
+    playerMesh.add(rightLeg);
+
+    // Armen met handen
+    const leftArm = new THREE.Group();
+    leftArm.position.set(-0.3, 1.1, 0); // Schoudergewricht
+    const lUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.5, 12), new THREE.MeshLambertMaterial({color:0x111111}));
+    lUpperArm.position.y = -0.25;
+    leftArm.add(lUpperArm);
+    const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshLambertMaterial({color:0xffccaa}));
+    lHand.position.y = -0.5;
+    leftArm.add(lHand);
+    playerMesh.add(leftArm);
+
+    const rightArm = new THREE.Group();
+    rightArm.position.set(0.3, 1.1, 0); // Schoudergewricht
+    const rUpperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.5, 12), new THREE.MeshLambertMaterial({color:0x111111}));
+    rUpperArm.position.y = -0.25;
+    rightArm.add(rUpperArm);
+    const rHand = new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshLambertMaterial({color:0xffccaa}));
+    rHand.position.y = -0.5;
+    rightArm.add(rHand);
+    playerMesh.add(rightArm);
+
+    scene.add(playerMesh);
+
+    // ========== OMA GENERATOR (MEER REALISTISCH) ==========
+    function createOmaMesh(isChase = false) {
+      const omaGroup = new THREE.Group();
+      
+      // Jurk (Kegel vorm)
+      const dress = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.0, 16), new THREE.MeshLambertMaterial({color: isChase ? 0x990000 : 0xff69b4}));
+      dress.position.y = 0.5;
+      omaGroup.add(dress);
+
+      // Torso bovenkant
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 0.4, 16), new THREE.MeshLambertMaterial({color: isChase ? 0x770000 : 0xdd4ea4}));
+      upper.position.y = 1.0;
+      omaGroup.add(upper);
+      
+      // Hoofd
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), new THREE.MeshLambertMaterial({color: isChase ? 0xffaaaa : 0xffccaa}));
+      head.position.y = 1.35;
+      omaGroup.add(head);
+
+      // Haar (Grijze knot)
+      const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.23, 16, 16, 0, Math.PI*2, 0, Math.PI/1.8), new THREE.MeshLambertMaterial({color:0xcccccc}));
+      hairBase.position.y = 1.35;
+      omaGroup.add(hairBase);
+      const hairBun = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshLambertMaterial({color:0xcccccc}));
+      hairBun.position.set(0, 1.45, -0.2);
+      omaGroup.add(hairBun);
+
+      // Brilletje
+      const glasses = new THREE.Group();
+      const frameL = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 8, 16), new THREE.MeshLambertMaterial({color:0x333333}));
+      frameL.position.set(-0.09, 1.38, 0.22);
+      const frameR = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 8, 16), new THREE.MeshLambertMaterial({color:0x333333}));
+      frameR.position.set(0.09, 1.38, 0.22);
+      const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.08), new THREE.MeshLambertMaterial({color:0x333333}));
+      bridge.rotation.z = Math.PI/2;
+      bridge.position.set(0, 1.38, 0.22);
+      glasses.add(frameL, frameR, bridge);
+      omaGroup.add(glasses);
+
+      // Rode ogen bij Jumpscare
+      if (isChase) {
+          const madEyes = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.05,0.2), new THREE.MeshBasicMaterial({color:0xff0000})); 
+          madEyes.position.set(0,1.38,0.15); 
+          omaGroup.add(madEyes);
+      }
+
+      // Armen
+      const lArm = new THREE.Group();
+      lArm.position.set(-0.3, 1.1, 0);
+      const lArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.45, 12), new THREE.MeshLambertMaterial({color: isChase ? 0x770000 : 0xdd4ea4}));
+      lArmMesh.position.y = -0.2;
+      lArm.add(lArmMesh);
+      // Hand met wandelstok
+      const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshLambertMaterial({color: isChase ? 0xffaaaa : 0xffccaa}));
+      lHand.position.y = -0.45;
+      lArm.add(lHand);
+      // Wandelstok
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.015, 1.0), new THREE.MeshLambertMaterial({color: 0x5c3a21}));
+      stick.position.set(0, -0.2, 0.2);
+      stick.rotation.x = -0.2;
+      lHand.add(stick);
+      omaGroup.add(lArm);
+
+      const rArm = new THREE.Group();
+      rArm.position.set(0.3, 1.1, 0);
+      const rArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.45, 12), new THREE.MeshLambertMaterial({color: isChase ? 0x770000 : 0xdd4ea4}));
+      rArmMesh.position.y = -0.2;
+      rArm.add(rArmMesh);
+      const rHand = new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshLambertMaterial({color: isChase ? 0xffaaaa : 0xffccaa}));
+      rHand.position.y = -0.45;
+      rArm.add(rHand);
+      omaGroup.add(rArm);
+      
+      // Bewaar referenties voor de loop-animatie
+      omaGroup.userData.lArm = lArm;
+      omaGroup.userData.rArm = rArm;
+      
+      return omaGroup;
+    }
+
+    const chaseOma = createOmaMesh(true);
+    chaseOma.visible = false;
+    scene.add(chaseOma);
+
+
+    // ========== LEVEL BUILDER ==========
+    function clearLevel() {
+      dynamicSceneObjects.forEach(obj => scene.remove(obj));
+      dynamicSceneObjects = [];
+      securityCameras = [];
+      omasList = [];
+      mowersList = [];
+      zoneRings = [];
+    }
+
+    function buildLevel(lvlIdx) {
+      clearLevel();
+      const config = levelData[lvlIdx];
+
+      // Lighting & Fog aanpassen op timeOfDay
+      if (config.timeOfDay === 'day') {
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.012);
+        ambientLight.color.setHex(0xffffff); ambientLight.intensity = 0.8;
+        skylight.color.setHex(0xffffff); skylight.intensity = 0.6;
+      } else if (config.timeOfDay === 'sunset') {
+        scene.background = new THREE.Color(0xff7a45);
+        scene.fog = new THREE.FogExp2(0xff7a45, 0.015);
+        ambientLight.color.setHex(0xffa573); ambientLight.intensity = 0.4;
+        skylight.color.setHex(0xff5500); skylight.intensity = 0.5;
+      } else if (config.timeOfDay === 'night') {
+        scene.background = new THREE.Color(0x0a101f);
+        scene.fog = new THREE.FogExp2(0x0a101f, 0.025);
+        ambientLight.color.setHex(0x334466); ambientLight.intensity = 0.15;
+        skylight.color.setHex(0x5577aa); skylight.intensity = 0.2;
+      }
+
+      // Camera's genereren
+      config.cameras.forEach(c => {
+        const group = new THREE.Group();
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.12,c.y), new THREE.MeshLambertMaterial({color:0x444444}));
+        pole.position.y = c.y/2; group.add(pole);
+        const dome = new THREE.Group();
+        dome.add(new THREE.Mesh(new THREE.SphereGeometry(0.2,16,8,0,Math.PI*2,0,Math.PI/2), new THREE.MeshLambertMaterial({color:0x111111})));
+        dome.position.y = c.y; group.add(dome);
+        
+        // Lens glow
+        const lens = new THREE.Mesh(new THREE.SphereGeometry(0.08), new THREE.MeshBasicMaterial({color:0xff0000}));
+        lens.position.set(0, c.y, 0.15); group.add(lens);
+
+        const circle = new THREE.Mesh(new THREE.CircleGeometry(c.radius, 48), new THREE.MeshBasicMaterial({color:0xff0000, transparent:true, opacity:0.25, side:THREE.DoubleSide}));
+        circle.rotation.x = -Math.PI/2; circle.position.set(0, 0.02, c.radius - 0.5);
+        group.add(circle);
+        
+        group.userData = { circle: circle, rotSpeed: c.speed, radius: c.radius };
+        group.position.set(c.x, 0, c.z);
+        scene.add(group);
+        securityCameras.push(group);
+        dynamicSceneObjects.push(group);
+      });
+
+      // Oma's genereren met zaklampen
+      config.omas.forEach(o => {
+        const omaGroup = createOmaMesh(false);
+
+        // Flashlight (Alleen fel/zichtbaar bij nacht/zonsondergang)
+        if (config.timeOfDay !== 'day') {
+           const coneGeom = new THREE.ConeGeometry(3, 7, 16, 1, true);
+           const coneMat = new THREE.MeshBasicMaterial({color: 0xffeebb, transparent: true, opacity: config.timeOfDay==='night'?0.15:0.08, side: THREE.DoubleSide, depthWrite: false});
+           const flashlightCone = new THREE.Mesh(coneGeom, coneMat);
+           flashlightCone.rotation.x = Math.PI / 2;
+           flashlightCone.position.set(0, 0.5, 3.5);
+           // Bevestig zaklamp aan haar rechterarm
+           omaGroup.userData.rArm.add(flashlightCone);
+           
+           const pl = new THREE.PointLight(0xffdd88, config.timeOfDay==='night'?1:0.5, 10);
+           pl.position.set(0, 0.5, 0.5);
+           omaGroup.userData.rArm.add(pl);
+        }
+
+        omaGroup.position.set(o.x, 0, o.startDir > 0 ? o.zStart : o.zEnd);
+        omaGroup.rotation.y = o.startDir > 0 ? 0 : Math.PI;
+        
+        omaGroup.userData.zStart = o.zStart;
+        omaGroup.userData.zEnd = o.zEnd;
+        omaGroup.userData.speed = o.speed;
+        omaGroup.userData.dir = o.startDir;
+
+        scene.add(omaGroup);
+        omasList.push(omaGroup);
+        dynamicSceneObjects.push(omaGroup);
+      });
+
+      // Robotmaaiers genereren
+      config.mowers.forEach(m => {
+        const mowerGroup = new THREE.Group();
+        
+        // Robot Body (rond, grijs/zwart)
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16), new THREE.MeshLambertMaterial({color: 0x333333}));
+        body.position.y = 0.1;
+        mowerGroup.add(body);
+        
+        // Rode waarschuwingsrand
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.48, 16), new THREE.MeshBasicMaterial({color: 0xff0000}));
+        ring.rotation.x = -Math.PI/2;
+        ring.position.y = 0.21;
+        mowerGroup.add(ring);
+        
+        // Knipperend lampje
+        const light = new THREE.Mesh(new THREE.SphereGeometry(0.06), new THREE.MeshBasicMaterial({color: 0xff0000}));
+        light.position.set(0, 0.23, 0.2);
+        mowerGroup.add(light);
+
+        mowerGroup.position.set(m.x, 0, m.z);
+        mowerGroup.userData = { speed: m.speed, isMower: true, light: light };
+        scene.add(mowerGroup);
+        mowersList.push(mowerGroup);
+        dynamicSceneObjects.push(mowerGroup);
+      });
+
+      // Actieve Zones tekenen
+      config.zones.forEach(zId => {
+        const zd = zoneDetails[zId];
+        const geo = new THREE.RingGeometry(zd.inner, zd.outer, 32);
+        const ring = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({color: zd.color, transparent:true, opacity:0.6, side:THREE.DoubleSide}));
+        ring.rotation.x = -Math.PI/2; ring.position.set(zd.x, 0.03, zd.z);
+        ring.userData = { id: zId }; 
+        scene.add(ring);
+        zoneRings.push(ring);
+        dynamicSceneObjects.push(ring);
+      });
+      
+      // Doel pijl (alleen bij door)
+      if(config.zones.includes('door')){
+          const goalArrow = new THREE.Mesh(new THREE.ConeGeometry(0.5,1.5), new THREE.MeshBasicMaterial({color:0xa855f7}));
+          goalArrow.position.set(zoneDetails['door'].x, 4.5, zoneDetails['door'].z);
+          scene.add(goalArrow);
+          dynamicSceneObjects.push(goalArrow);
+      }
+    }
+
+    // ========== GAME LOGICA & UI ==========
+
+    function updateInventoryUI() {
+      document.getElementById('inv-bobbypin').style.opacity = state.inventory.bobbypin ? '1' : '0.2';
+      document.getElementById('inv-bobbypin').style.transform = state.inventory.bobbypin ? 'scale(1.05)' : 'scale(1)';
+      document.getElementById('inv-bobbypin').className = state.inventory.bobbypin ? "bg-amber-900/40 border border-amber-500 p-2 rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_10px_rgba(245,158,11,0.3)]" : "bg-slate-900/80 border border-slate-800 p-2 rounded-lg flex items-center justify-center gap-2 opacity-30 transition-all";
+      
+      document.getElementById('inv-key').style.opacity = state.inventory.key ? '1' : '0.2';
+      document.getElementById('inv-key').style.transform = state.inventory.key ? 'scale(1.05)' : 'scale(1)';
+      document.getElementById('inv-key').className = state.inventory.key ? "bg-yellow-900/40 border border-yellow-500 p-2 rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_10px_rgba(250,204,21,0.3)]" : "bg-slate-900/80 border border-slate-800 p-2 rounded-lg flex items-center justify-center gap-2 opacity-30 transition-all";
+    }
+
+    function evaluateZones() {
+      let closest='free', min=3.5;
+      const config = levelData[state.currentLevel];
+      
+      for (const zId of config.zones) {
+        const zd = zoneDetails[zId];
+        const d = Math.hypot(playerMesh.position.x-zd.x, playerMesh.position.z-zd.z);
+        if (d < zd.outer + 1.2 && d < min) { closest=zId; min=d; }
+      }
+      
+      if (state.currentLocation !== closest) {
+        state.currentLocation = closest;
+        document.getElementById('currentLocName').textContent = closest!=='free' ? zoneDetails[closest].name : '⚠ Open Terrein';
+        document.getElementById('currentLocName').className = closest==='free' ? "font-extrabold text-slate-400" : "font-extrabold text-emerald-400";
+        if (closest==='door') logSys("Je staat bij de achterdeur!", "text-purple-400 font-bold");
+        updateActions();
+      }
+    }
+
+    function updateActions() {
+      const area = document.getElementById('actionArea'); area.innerHTML='';
+      const loc = state.currentLocation;
+      const config = levelData[state.currentLevel];
+
+      if (loc === 'table' && !state.searchedTable) {
+        area.appendChild(createBtn('Zoeken (Tafel)', 'fa-magnifying-glass', ()=>{ 
+          state.searchedTable=true; state.inventory.bobbypin=true; updateInventoryUI(); 
+          logSys('🔧 Paperclip gevonden!', 'text-amber-400'); updateActions(); 
+        }));
+      } 
+      else if (loc === 'border' && !state.searchedPot) {
+        area.appendChild(createBtn('Graven (Aarde)', 'fa-shovel', startDigging, 'bg-emerald-700 hover:bg-emerald-600'));
+      } 
+      else if (loc === 'door') {
+        const req = config.doorRequirement;
+        
+        if (req === 'none') {
+          area.appendChild(createBtn('🎯 DEUR OPENEN', 'fa-door-open', winLevel, 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'));
+        } 
+        else if (req === 'key') {
+          if (state.inventory.key) area.appendChild(createBtn('🎯 DEUR OPENEN', 'fa-door-open', winLevel, 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]'));
+          else area.innerHTML = '<span class="text-red-400 font-black bg-red-950/80 px-4 py-2 rounded-xl border border-red-900 w-full text-center shadow-inner"><i class="fa-solid fa-lock"></i> SLEUTEL ONTBREEKT!</span>';
+        } 
+        else if (req === 'bobbypin') {
+          if (state.inventory.bobbypin) area.appendChild(createBtn('Lockpicken', 'fa-unlock', startLockpick, 'bg-amber-600 hover:bg-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.4)]'));
+          else area.innerHTML = '<span class="text-red-400 font-black bg-red-950/80 px-4 py-2 rounded-xl border border-red-900 w-full text-center shadow-inner"><i class="fa-solid fa-lock"></i> PAPERCLIP ONTBREEKT!</span>';
+        } 
+        else if (req === 'both') {
+          if (!state.inventory.key) area.innerHTML = '<span class="text-red-400 font-black bg-red-950/80 px-4 py-2 rounded-xl border border-red-900 w-full text-center shadow-inner"><i class="fa-solid fa-lock"></i> SLEUTEL ONTBREEKT!</span>';
+          else if (!state.inventory.bobbypin) area.innerHTML = '<span class="text-red-400 font-black bg-red-950/80 px-4 py-2 rounded-xl border border-red-900 w-full text-center shadow-inner"><i class="fa-solid fa-lock"></i> SLEUTEL IN SLOT. PAPERCLIP NODIG!</span>';
+          else area.appendChild(createBtn('Lockpicken', 'fa-unlock', startLockpick, 'bg-amber-600 hover:bg-amber-500 shadow-[0_0_15px_rgba(217,119,6,0.4)]'));
+        }
+      } 
+      else if (loc === 'hedge' || loc === 'chair') {
+        area.innerHTML='<div class="text-blue-400 text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-shield-halved animate-pulse"></i> Veilig Verborgen</div>';
+      }
+      else {
+        area.innerHTML='<div class="text-slate-500 text-xs italic"><i class="fa-solid fa-shoe-prints mr-1"></i> Zoek naar oplichtende zones...</div>';
+      }
+    }
+
+    function createBtn(text, icon, cb, cls='') {
+      const b = document.createElement('button');
+      b.className = `action-button px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-600 flex items-center gap-2 transition-all ${cls}`;
+      b.innerHTML = `<i class="fa-solid ${icon}"></i> ${text}`;
+      b.onclick = cb; return b;
+    }
+
+    // ========== MINIGAMES ==========
+    function startDigging() {
+      state.isMinigameActive=true;
+      document.getElementById('minigameTitle').textContent='Graven in Aarde';
+      let html='<div class="grid grid-cols-3 gap-3 w-60 mx-auto">';
+      for(let i=0;i<9;i++) html+=`<button onclick="digSlot(${i},this)" class="w-16 h-16 bg-amber-950/80 hover:bg-amber-900 border-2 border-amber-800/50 rounded-xl flex items-center justify-center transition-colors"><i class="fa-solid fa-mound text-amber-700 text-2xl"></i></button>`;
+      document.getElementById('minigameContainer').innerHTML=html+'</div>';
+      state.digTarget=Math.floor(Math.random()*9); state.digTraps=[];
+      while(state.digTraps.length<3){let r=Math.floor(Math.random()*9); if(r!==state.digTarget&&!state.digTraps.includes(r))state.digTraps.push(r);}
+      document.getElementById('minigamePanel').classList.remove('hidden');
+    }
+    window.digSlot = function(idx, btn) {
+      if (idx===state.digTarget) {
+        btn.innerHTML='<i class="fa-solid fa-key text-yellow-400 text-3xl drop-shadow-[0_0_10px_rgba(250,204,21,0.8)] animate-bounce"></i>';
+        btn.className="w-16 h-16 bg-emerald-900/80 border-2 border-emerald-500 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]";
+        state.inventory.key=true; state.searchedPot=true; updateInventoryUI();
+        playSound('success'); logSys('Sleutel gevonden!', 'text-yellow-400 font-bold');
+        setTimeout(cancelMinigame, 1200);
+      } else if (state.digTraps.includes(idx)) {
+        btn.innerHTML='<i class="fa-solid fa-spider text-red-500 text-xl"></i>';
+        btn.className="w-16 h-16 bg-red-950/80 border-2 border-red-800 rounded-xl flex items-center justify-center";
+        increaseAlert(25); playSound('oma'); logSys('Pas op! Spin!', 'text-red-400');
+      } else { 
+        btn.innerHTML='<i class="fa-solid fa-worm text-pink-700 opacity-50"></i>'; 
+        btn.className="w-16 h-16 bg-slate-900 border-2 border-slate-800 rounded-xl flex items-center justify-center cursor-not-allowed";
+        btn.disabled=true; 
+      }
+    };
+
+    function startLockpick() {
+      state.isMinigameActive=true; state.lockPhase=0;
+      document.getElementById('minigameTitle').textContent='Lockpicken';
+      document.getElementById('minigameContainer').innerHTML=`
+      <div class="relative w-40 h-40 rounded-full border-8 border-slate-800 bg-slate-900 flex items-center justify-center overflow-hidden shadow-inner mx-auto">
+        <div class="absolute w-full h-12 bg-emerald-500/20 border-y-2 border-emerald-500/60 top-[50px]"></div>
+        <div id="lpNeedle" class="absolute w-1.5 h-40 bg-slate-200 z-10 origin-bottom shadow-lg" style="bottom:50%;transform:rotate(0deg);border-radius:2px;"></div>
+      </div>
+      <button onclick="hitLockpick()" class="mt-6 w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-black text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all active:scale-95">DRUK (Spatie)</button>
+      <div class="flex justify-center gap-2 mt-3" id="lpPins">
+        <div class="w-3 h-3 rounded-full bg-slate-700"></div><div class="w-3 h-3 rounded-full bg-slate-700"></div><div class="w-3 h-3 rounded-full bg-slate-700"></div>
+      </div>`;
+      document.getElementById('minigamePanel').classList.remove('hidden');
+      
+      // Maak container relative voor de overlay
+      document.getElementById('minigameContainer').classList.add('relative');
+      
+      let angle=0;
+      state.lpInterval=setInterval(()=>{ angle=(angle+5)%360; const n=document.getElementById('lpNeedle'); if(n)n.style.transform=`rotate(${angle}deg)`; }, 18);
+    }
+    
+    // Allow spacebar for lockpick
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space' && state.isMinigameActive && document.getElementById('lpNeedle')) {
+        e.preventDefault(); hitLockpick();
+      }
+    });
+
+    window.hitLockpick = function() {
+      const n=document.getElementById('lpNeedle'); if(!n)return;
+      const angle=parseInt(n.style.transform.replace(/[^\d]/g,''))||0;
+      // Groene zone is tussen ~65-115 en ~245-295
+      if ((angle>65&&angle<115)||(angle>245&&angle<295)) {
+        state.lockPhase++;
+        const pins = document.getElementById('lpPins').children;
+        for(let i=0;i<state.lockPhase;i++) { pins[i].className = "w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]"; }
+        playSound('click');
+        if (state.lockPhase>=3) { 
+          clearInterval(state.lpInterval); 
+          document.getElementById('minigameTitle').textContent='SLOT GEKRAAKT!';
+          document.getElementById('minigameTitle').className="text-xl font-black text-center text-purple-400 tracking-widest uppercase animate-pulse";
+          setTimeout(()=>{ cancelMinigame(); winLevel(); }, 800); 
+        }
+      } else { 
+        increaseAlert(20); playSound('click'); logSys('Mis! Maakt lawaai!', 'text-red-400');
+        document.getElementById('minigameContainer').classList.add('animate-shake');
+        setTimeout(()=>document.getElementById('minigameContainer').classList.remove('animate-shake'), 200);
+      }
+    };
+    
+    window.cancelMinigame = function() {
+      if (state.lpInterval) clearInterval(state.lpInterval);
+      state.isMinigameActive=false;
+      document.getElementById('minigamePanel').classList.add('hidden');
+      updateActions();
+    };
+
+    // ========== GAME MECHANICS (Alert & Detectie) ==========
+    function increaseAlert(amt) {
+      state.alertLevel = Math.min(100, state.alertLevel+amt);
+      document.getElementById('alertPct').textContent = Math.floor(state.alertLevel)+'%';
+      document.getElementById('alertProgressBar').style.width = state.alertLevel+'%';
+      
+      let barColor = 'from-emerald-500 to-emerald-400';
+      if (state.alertLevel > 75) barColor = 'from-red-600 to-red-500';
+      else if (state.alertLevel > 40) barColor = 'from-amber-500 to-amber-400';
+      document.getElementById('alertProgressBar').className = `bg-gradient-to-r ${barColor} h-full transition-all duration-300 rounded-full shadow-[0_0_10px_currentColor]`;
+      
+      document.getElementById('warning-flash').style.opacity=1;
+      setTimeout(()=>document.getElementById('warning-flash').style.opacity=0, 200);
+      
+      if (state.alertLevel>=100) triggerGameOver('De argwaan meter is vol! Je bent opgemerkt door lawaai of vreemd gedrag.');
+    }
+
+    function checkDetection(delta) {
+      if (!state.isStarted || state.isCaught) return;
+      
+      const inCover = (state.currentLocation==='hedge' || state.currentLocation==='chair');
+      const px = playerMesh.position.x, pz = playerMesh.position.z;
+
+      // Check Cameras - NU DIRECT GAME OVER
+      if (!inCover) {
+        for (const cam of securityCameras) {
+          const worldPos = new THREE.Vector3();
+          cam.userData.circle.getWorldPosition(worldPos);
+          if (Math.hypot(px-worldPos.x, pz-worldPos.z) < cam.userData.radius) {
+            triggerGameOver('Direct gepakt door de bewakingscamera!');
+            return; // Stop verdere code
+          }
+        }
+      }
+      
+      // Cooldown reset als er geen gevaar meer is
+      state.camDetectCooldown = Math.max(0, state.camDetectCooldown - delta*50);
+      if (state.camDetectCooldown <= 0) document.getElementById('cam-detect-alert').style.opacity=0;
+    }
+
+    function updatePatrol(delta) {
+      if (!state.isStarted || state.isCaught) return;
+      const inCover = (state.currentLocation==='hedge' || state.currentLocation==='chair');
+      const px = playerMesh.position.x, pz = playerMesh.position.z;
+      
+      // Update Oma's
+      omasList.forEach(oma => {
+        const d = oma.userData;
+        oma.position.z += d.dir * d.speed * delta;
+        
+        // Keerpunt
+        if (oma.position.z > d.zEnd) { d.dir = -1; }
+        else if (oma.position.z < d.zStart) { d.dir = 1; }
+        
+        // Smooth rotation
+        const targetRot = d.dir > 0 ? 0 : Math.PI;
+        oma.rotation.y += (targetRot - oma.rotation.y) * 0.1;
+
+        // Loop animatie voor Oma's armen
+        const time = Date.now() * 0.01;
+        if (oma.userData.lArm && oma.userData.rArm) {
+             oma.userData.lArm.rotation.x = Math.sin(time) * 0.4;
+             oma.userData.rArm.rotation.x = Math.sin(time + Math.PI) * 0.4;
+        }
+
+        // Detectie
+        if (!inCover) {
+          const dist = playerMesh.position.distanceTo(oma.position);
+          
+          if (dist < 1.5) {
+             triggerGameOver('Je botste recht tegen een Oma aan!');
+          } else if (dist < 6 && levelData[state.currentLevel].timeOfDay !== 'day') {
+             // Flashlight detectie (alleen avond/nacht)
+             const dirToPlayer = new THREE.Vector3().subVectors(playerMesh.position, oma.position).normalize();
+             const omaForward = new THREE.Vector3(0,0,1).applyEuler(oma.rotation);
+             const angle = omaForward.angleTo(dirToPlayer);
+             
+             if (angle < 0.6) { // ~35 graden cone
+                increaseAlert(40 * delta); // Heel snel ontdekt!
+                document.getElementById('cam-detect-alert').textContent = '🔦 OMA ZIET JE!';
+                document.getElementById('cam-detect-alert').style.opacity=1;
+             }
+          } else if (dist < 3.5 && levelData[state.currentLevel].timeOfDay === 'day') {
+             // Dagzicht detectie
+             const dirToPlayer = new THREE.Vector3().subVectors(playerMesh.position, oma.position).normalize();
+             const omaForward = new THREE.Vector3(0,0,1).applyEuler(oma.rotation);
+             if (omaForward.angleTo(dirToPlayer) < 1.0) triggerGameOver('Een Oma zag je op klaarlichte dag lopen!');
+          }
+        }
+      });
+
+      // Update Robotmaaiers
+      mowersList.forEach(mower => {
+        const speed = mower.userData.speed;
+        const dx = px - mower.position.x;
+        const dz = pz - mower.position.z;
+        const dist = Math.hypot(dx, dz);
+
+        // Knipperlampje effect
+        mower.userData.light.material.opacity = (Date.now() % 500 > 250) ? 1 : 0.2;
+
+        if (inCover) {
+           // Robot is in de war en draait rondjes
+           mower.rotation.y += 2 * delta;
+        } else if (dist > 0.1) {
+           // --- ROBOT RIJDT ACHTERUIT TIJDENS GRAVEN/LOCKPICKEN ---
+           if (state.isMinigameActive && dist < 3.5) {
+               // Robot rijdt automatisch achteruit zodat hij je niet pakt!
+               const moveX = -(dx / dist) * speed * delta;
+               const moveZ = -(dz / dist) * speed * delta;
+               mower.position.x += moveX;
+               mower.position.z += moveZ;
+               mower.lookAt(px, 0, pz); // Blijft naar je kijken
+           } else {
+               // Robot rijdt normaal op speler af
+               const moveX = (dx / dist) * speed * delta;
+               const moveZ = (dz / dist) * speed * delta;
+               mower.position.x += moveX;
+               mower.position.z += moveZ;
+               mower.lookAt(px, 0, pz);
+           }
+        }
+
+        // Aanrijding check (alleen als je niet in een minigame zit)
+        if (dist < 0.8 && !state.isMinigameActive) {
+           triggerGameOver('Je bent overreden door de robotmaaier!');
+        }
+      });
+    }
+
+    // ========== GAME FLOW ==========
+    function triggerGameOver(reason) {
+      if (state.isCaught) return;
+      state.isCaught = true; state.isMinigameActive = false;
+      document.getElementById('minigamePanel').classList.add('hidden');
+      
+      // Jumpscare effect
+      playSound('oma'); playSound('alert');
+      const js = document.getElementById('jumpscare-alert');
+      js.classList.add('show');
+      
+      // Verberg andere vijanden
+      omasList.forEach(o => o.visible = false);
+      mowersList.forEach(m => m.visible = false);
+      
+      // Oma spawnt precies voor het gezicht van de speler
+      chaseOma.visible = true;
+      const frontX = playerMesh.position.x + Math.sin(playerMesh.rotation.y) * 1.5;
+      const frontZ = playerMesh.position.z + Math.cos(playerMesh.rotation.y) * 1.5;
+      
+      chaseOma.position.set(frontX, 0, frontZ);
+      chaseOma.lookAt(playerMesh.position.x, 1.0, playerMesh.position.z); // Ze kijkt naar jou
+      
+      // Camera snap keihard naar de Oma
+      new TWEEN.Tween(camera.position)
+        .to({x: playerMesh.position.x, y: 1.5, z: playerMesh.position.z}, 300)
+        .onUpdate(() => {
+           // Zorgt ervoor dat de camera strak de oma blijft volgen tijdens de jumpscare
+           camera.lookAt(chaseOma.position.x, 1.2, chaseOma.position.z);
+        })
+        .start();
+
+      setTimeout(() => {
+        js.classList.remove('show');
+        document.getElementById('endDesc').innerHTML = `Missie gefaald.<br><br><span class="text-red-400">${reason}</span>`;
+        document.getElementById('endModal').classList.remove('hidden');
+      }, 1500);
+    }
+
+    function winLevel() {
+      if(state.isCaught || !state.isStarted || state.currentLocation !== 'door') return; // Anti-exploit check: Je MOET fysiek bij de deur staan!
+      state.isStarted = false;
+      playSound('success');
+      
+      if (state.currentLevel === levelData.length - 1) {
+        // Finale Gewonnen
+        setTimeout(() => {
+          document.getElementById('win-video-link').href = WIN_VIDEO_URL;
+          document.getElementById('win-video-overlay').style.display = 'flex';
+        }, 1000);
+      } else {
+        // Level Transition
+        document.getElementById('ltDesc').innerHTML = `Je hebt <span class="text-emerald-400 font-bold">${levelData[state.currentLevel].title}</span> voltooid zonder ontdekt te worden. Maak je klaar voor de volgende fase.`;
+        setTimeout(() => {
+          document.getElementById('levelTransitionModal').classList.remove('hidden');
+        }, 800);
+      }
+    }
+
+    window.nextLevel = () => {
+      if (document.getElementById('levelTransitionModal').classList.contains('hidden')) return; // Anti-exploit dubbelklik check
+      state.currentLevel++;
+      document.getElementById('levelTransitionModal').classList.add('hidden');
+      startLevel(state.currentLevel);
+    };
+
+    window.resetLevel = () => {
+      document.getElementById('endModal').classList.add('hidden');
+      startLevel(state.currentLevel);
+    };
+
+    window.showInstructions = () => document.getElementById('introModal').classList.remove('hidden');
+    
+    window.startGame = () => {
+      document.getElementById('introModal').classList.add('hidden');
+      startLevel(0);
+    };
+
+    function startLevel(lvlIdx) {
+      state.currentLevel = lvlIdx;
+      state.isStarted = true; state.isCaught = false; 
+      state.alertLevel = 0; state.currentLocation = 'force-update'; // Zorgt dat de UI altijd 100% zeker goed reset
+      state.inventory = { bobbypin: false, key: false }; updateInventoryUI();
+      state.searchedPot = false; state.searchedTable = false; state.camDetectCooldown = 0;
+      state.kickPromptActive = false; state.robotToKick = null;
+      
+      // Reset UI
+      document.getElementById('alertPct').textContent = '0%';
+      document.getElementById('alertProgressBar').style.width = '0%';
+      document.getElementById('currentLocName').textContent = 'Start';
+      document.getElementById('levelBadge').textContent = 'LVL ' + (lvlIdx+1);
+      document.getElementById('levelDescHeader').textContent = levelData[lvlIdx].subtitle;
+      document.getElementById('gameLog').innerHTML = '';
+      document.getElementById('actionArea').innerHTML = '<div class="text-slate-400 text-xs italic"><i class="fa-solid fa-shoe-prints animate-pulse text-emerald-500 mr-1"></i> Zoek naar oplichtende zones...</div>'; // Verwijder de oude knoppen direct!
+      
+      // Clear inputs
+      for (const k in keysPressed) keysPressed[k] = false;
+      
+      // Setup 3D Scene
+      chaseOma.visible = false;
+      // VERANDERD: Player spawnt nu tussen de lounge stoelen, kijkend naar de tuin (zoals op foto)
+      playerMesh.position.set(0, 0, 16.0);
+      playerMesh.rotation.y = Math.PI; // Kijk naar de tuin
+      
+      // Reset camera (Nu standaard op Vrij Kijken!)
+      state.cameraMode = 'free';
+      document.getElementById('camText').textContent = 'Vrij Kijken';
+      document.getElementById('camIcon').className = "fa-solid fa-eye text-emerald-400";
+      state.mouseRotate = { x: 0, y: -0.2 }; // Zorgt dat je naar voren kijkt in plaats van naar je gezicht!
+
+      // Build objects
+      buildLevel(lvlIdx);
+      
+      // Toast Animation
+      logSys(`Start ${levelData[lvlIdx].title}`, 'text-indigo-400 font-bold');
+      logSys(`Missie Info: ${levelData[lvlIdx].desc}`, 'text-slate-300 text-[10px]');
+      
+      const toast = document.getElementById('level-toast');
+      document.getElementById('toast-title').textContent = 'LEVEL ' + (lvlIdx+1);
+      document.getElementById('toast-subtitle').textContent = levelData[lvlIdx].title;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+
+      evaluateZones();
+    }
+
+    // ========== ANIMATIELOOP ==========
+    const clock = new THREE.Clock();
+    let lastStepTime = 0;
+
+    function handleMovement(delta) {
+      if (!state.isStarted || state.isMinigameActive || state.isCaught) {
+        // Reset ledematen
+        leftLeg.rotation.x = rightLeg.rotation.x = leftArm.rotation.x = rightArm.rotation.x = 0;
+        return;
+      }
+      const dt = Math.min(delta, 0.1); if (dt<=0) return;
+      
+      let mx=0, mz=0;
+      if (keysPressed.w||keysPressed.ArrowUp) mz-=1;
+      if (keysPressed.s||keysPressed.ArrowDown) mz+=1;
+      if (keysPressed.a||keysPressed.ArrowLeft) mx-=1;
+      if (keysPressed.d||keysPressed.ArrowRight) mx+=1;
+      
+      if (mx!==0||mz!==0) {
+        const len = Math.sqrt(mx*mx+mz*mz);
+        const nx = playerMesh.position.x + (mx/len)*4.5*dt;
+        const nz = playerMesh.position.z + (mz/len)*4.5*dt;
+        
+        // Boundaries
+        if (nx>-6.5 && nx<7.5 && nz>-16.5 && nz<17.8) {
+          if (!collidesAt(nx, nz)) playerMesh.position.set(nx,0,nz);
+          else if (!collidesAt(nx, playerMesh.position.z)) playerMesh.position.x = nx;
+          else if (!collidesAt(playerMesh.position.x, nz)) playerMesh.position.z = nz;
+          
+          playerMesh.rotation.y = Math.atan2(mx/len, mz/len);
+          
+          // Loop animatie voor armen en benen (Realistischer)
+          const time = Date.now() * 0.015;
+          leftLeg.rotation.x = Math.sin(time) * 0.6;
+          rightLeg.rotation.x = Math.sin(time + Math.PI) * 0.6;
+          leftArm.rotation.x = Math.sin(time + Math.PI) * 0.4;
+          rightArm.rotation.x = Math.sin(time) * 0.4;
+
+          if (Date.now()-lastStepTime>350) { playSound('step'); lastStepTime=Date.now(); }
+          evaluateZones();
+        }
+      } else {
+        leftLeg.rotation.x = rightLeg.rotation.x = leftArm.rotation.x = rightArm.rotation.x = 0;
+      }
+    }
+
+    // Camera bediening
+    window.addEventListener('mousedown', e => { state.isMouseDown=true; state.prevMousePos={x:e.clientX,y:e.clientY}; });
+    window.addEventListener('mouseup', () => state.isMouseDown=false);
+    window.addEventListener('mousemove', e => {
+      if (!state.isMouseDown || state.cameraMode!=='free') return;
+      state.mouseRotate.x -= (e.clientX-state.prevMousePos.x)*0.005;
+      state.mouseRotate.y = Math.max(-Math.PI/3, Math.min(Math.PI/3, state.mouseRotate.y - (e.clientY-state.prevMousePos.y)*0.005));
+      state.prevMousePos = {x:e.clientX, y:e.clientY};
+    });
+    
+    document.getElementById('camToggle').addEventListener('click', ()=>{
+      playSound('click');
+      state.cameraMode = state.cameraMode==='photo'?'free':'photo';
+      document.getElementById('camText').textContent = state.cameraMode==='photo'?'Foto Standpunt':'Vrij Kijken';
+      document.getElementById('camIcon').className = state.cameraMode==='photo'?"fa-solid fa-camera text-sky-400":"fa-solid fa-eye text-emerald-400";
+      if (state.cameraMode==='photo') new TWEEN.Tween(camera.position).to({x:-0.2, y:4.2, z:22.5},800).onUpdate(()=>camera.lookAt(0.4,0.5,0)).start();
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // --- ULTRA ANTI-LAG MENU HACK ---
+      // Stop de 3D engine VOLLEDIG als je in een groot menu zit!
+      const introOpen = !document.getElementById('introModal').classList.contains('hidden');
+      const endOpen = !document.getElementById('endModal').classList.contains('hidden');
+      const transitionOpen = !document.getElementById('levelTransitionModal').classList.contains('hidden');
+      const winOpen = document.getElementById('win-video-overlay').style.display === 'flex';
+      
+      if (introOpen || endOpen || transitionOpen || winOpen) {
+        return; // Sla het tekenen van de 3D wereld over (0% lag in menu)
+      }
+
+      const delta = clock.getDelta();
+      TWEEN.update();
+      
+      handleMovement(delta);
+      updatePatrol(delta);
+      
+      if (state.isStarted && !state.isCaught) {
+        for (const cam of securityCameras) cam.rotation.y += cam.userData.rotSpeed * delta * 30;
+        checkDetection(delta);
+      }
+      
+      // Pulse actieve zones
+      const t = Date.now()*0.002;
+      zoneRings.forEach(r => {
+        r.scale.setScalar(1+Math.sin(t*2)*0.04);
+        if (r.userData.id==='door') r.material.opacity=0.6+Math.sin(t*4)*0.3;
+      });
+
+      if (state.cameraMode==='free' && !state.isCaught) {
+        const r=9;
+        camera.position.x = playerMesh.position.x + r*Math.sin(state.mouseRotate.x)*Math.cos(state.mouseRotate.y);
+        camera.position.z = playerMesh.position.z + r*Math.cos(state.mouseRotate.x)*Math.cos(state.mouseRotate.y);
+        camera.position.y = playerMesh.position.y+4.0 + r*Math.sin(state.mouseRotate.y);
+        camera.lookAt(playerMesh.position.x, playerMesh.position.y+1, playerMesh.position.z);
+      }
+      
+      renderer.render(scene, camera);
+    }
+    
+    window.addEventListener('resize', ()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    animate();
+    
+    // Auto-show instructies bij start
+    setTimeout(showInstructions, 500);
+  </script>
+</body>
+</html>
