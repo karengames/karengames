@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karen games</title>
+    <title>Karen Games</title>
     
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -37,10 +37,10 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col relative">
 
     <!-- Navigation Bar -->
-    <nav class="glass-panel sticky top-0 z-50">
+    <nav class="glass-panel sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex-shrink-0 flex items-center gap-3">
@@ -90,7 +90,6 @@
                 <!-- Game Card 1: Kattenkwaad -->
                 <div class="game-card glass-panel rounded-2xl overflow-hidden transition-all duration-300 group flex flex-col h-full">
                     <div class="h-48 bg-gray-800/50 flex items-center justify-center relative overflow-hidden group-hover:bg-gray-700/50 transition-colors">
-                        <!-- Add your game image here -->
                         <img src="kattenkwaad-pic.png" alt="Kattenkwaad" class="w-full h-full object-cover absolute inset-0 z-0 opacity-80 group-hover:opacity-100 transition-opacity" onerror="this.style.display='none'">
                         
                         <span class="text-gray-500 text-lg font-medium relative z-10">Image Placeholder</span>
@@ -108,16 +107,16 @@
                                 Time for some mischief! Jump in and play Kattenkwaad.
                             </p>
                         </div>
-                        <a href="kattenkwaad.html" class="w-full text-center block bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-xl transition-colors border border-white/5">
+                        <!-- Clicking this button triggers the JavaScript to open the iframe -->
+                        <button onclick="openGame('kattenkwaad.html')" class="w-full text-center block bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-xl transition-colors border border-white/5">
                             Play Now
-                        </a>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Game Card 2: Fighter Game -->
                 <div class="game-card glass-panel rounded-2xl overflow-hidden transition-all duration-300 group flex flex-col h-full">
                     <div class="h-48 bg-gray-800/50 flex items-center justify-center relative overflow-hidden group-hover:bg-gray-700/50 transition-colors">
-                        <!-- Add your game image here -->
                         <img src="fighter-pic.png" alt="Fighter Game" class="w-full h-full object-cover absolute inset-0 z-0 opacity-80 group-hover:opacity-100 transition-opacity" onerror="this.style.display='none'">
                         
                         <span class="text-gray-500 text-lg font-medium relative z-10">Image Placeholder</span>
@@ -135,9 +134,10 @@
                                 Step into the arena and show off your moves.
                             </p>
                         </div>
-                        <a href="fighter.html" class="w-full text-center block bg-pink-600 hover:bg-pink-500 text-white font-semibold py-2 px-4 rounded-xl transition-colors border border-white/5">
+                        <!-- Clicking this button triggers the JavaScript to open the iframe -->
+                        <button onclick="openGame('fighter.html')" class="w-full text-center block bg-pink-600 hover:bg-pink-500 text-white font-semibold py-2 px-4 rounded-xl transition-colors border border-white/5">
                             Play Now
-                        </a>
+                        </button>
                     </div>
                 </div>
 
@@ -175,9 +175,55 @@
         <p class="text-sm mt-2">Hosted on GitHub Pages</p>
     </footer>
 
+    <!-- Iframe Game Player Overlay -->
+    <div id="game-overlay" class="fixed inset-0 z-50 hidden bg-[#0f172a] flex-col">
+        
+        <!-- Area where the game loads -->
+        <div class="flex-grow w-full relative bg-black">
+            <iframe id="game-iframe" class="absolute inset-0 w-full h-full border-0" src=""></iframe>
+        </div>
+        
+        <!-- Bottom Bar with Return Button -->
+        <div class="glass-panel h-20 flex items-center justify-center px-4 shrink-0 border-t border-white/10">
+            <button onclick="closeGame()" class="bg-red-500/90 hover:bg-red-500 hover:scale-105 text-white font-bold py-3 px-8 rounded-full transition-all border border-red-400/50 shadow-[0_0_15px_rgba(239,68,68,0.5)] flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Return to Home
+            </button>
+        </div>
+        
+    </div>
+
     <script>
         // Set the current year in the footer dynamically
         document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Game Player JavaScript Logic
+        const gameOverlay = document.getElementById('game-overlay');
+        const gameIframe = document.getElementById('game-iframe');
+
+        function openGame(gameUrl) {
+            // Set the iframe source to the game URL
+            gameIframe.src = gameUrl;
+            
+            // Show the overlay
+            gameOverlay.classList.remove('hidden');
+            gameOverlay.classList.add('flex');
+            
+            // Stop the main website from scrolling in the background
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeGame() {
+            // Hide the overlay
+            gameOverlay.classList.add('hidden');
+            gameOverlay.classList.remove('flex');
+            
+            // Clear the iframe source so the game stops running in the background
+            gameIframe.src = '';
+            
+            // Allow the main website to scroll again
+            document.body.style.overflow = '';
+        }
     </script>
 </body>
 </html>
