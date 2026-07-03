@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Karen games</title>
+    <title>Karen Games</title>
     
     <!-- Website Icon (Favicon) -->
     <link rel="icon" href="background.jpeg" type="image/jpeg">
@@ -146,21 +146,23 @@
 
         <!-- Games Grid Section -->
         <div id="games" class="mb-20 relative z-10">
-            <div class="flex items-end justify-between mb-12 border-b border-white/10 pb-4">
+            <div class="flex flex-col md:flex-row items-start md:items-end justify-between mb-12 border-b border-white/10 pb-4 gap-4">
                 <h2 class="text-4xl md:text-5xl font-black uppercase text-white arcade-font drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
                     <span class="text-[#ff0055]">Kies</span> Spel
                 </h2>
-                <div class="flex gap-2">
-                    <div class="w-3 h-3 bg-[#00f3ff] rounded-full shadow-[0_0_10px_#00f3ff]"></div>
-                    <div class="w-3 h-3 bg-[#ff0055] rounded-full shadow-[0_0_10px_#ff0055]"></div>
-                    <div class="w-3 h-3 bg-[#b026ff] rounded-full shadow-[0_0_10px_#b026ff]"></div>
+                
+                <!-- Toegevoegde Zoekbalk (Nieuwe Feature!) -->
+                <div class="relative w-full md:w-64">
+                    <input type="text" id="searchBar" onkeyup="searchGames()" placeholder="Zoek een spel..." class="w-full bg-[#050510]/80 border border-white/20 text-white px-4 py-2 rounded-sm focus:outline-none focus:border-[#ff0055] focus:shadow-[0_0_10px_rgba(255,0,85,0.3)] transition-all font-poppins placeholder-gray-500">
+                    <svg class="w-5 h-5 absolute right-3 top-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <!-- Game Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10" id="gameGrid">
                 
                 <!-- Game Card 1: Kattenkwaad (Cyan Theme) -->
-                <div class="game-card cyan glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group">
+                <div class="game-card cyan glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group" data-title="Kattenkwaad">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#00f3ff] shadow-[0_0_10px_#00f3ff] z-20"></div>
                     
                     <div class="h-56 bg-black flex items-center justify-center relative overflow-hidden">
@@ -171,7 +173,7 @@
                     <div class="p-8 flex-grow flex flex-col justify-between relative z-30 bg-gradient-to-t from-black/80 to-transparent">
                         <div>
                             <div class="flex justify-between items-start mb-4">
-                                <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#00f3ff] transition-colors drop-shadow-md">Kattenkwaad</h3>
+                                <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#00f3ff] transition-colors drop-shadow-md game-title">Kattenkwaad</h3>
                                 <span class="px-3 py-1 bg-[#00f3ff]/20 text-[#00f3ff] text-xs font-black uppercase tracking-wider rounded-sm neon-border-cyan animate-pulse">
                                     P1 Klaar
                                 </span>
@@ -187,7 +189,7 @@
                 </div>
 
                 <!-- Game Card 2: Fighter Game (Pink Theme) -->
-                <div class="game-card pink glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group">
+                <div class="game-card pink glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group" data-title="Action Fighter">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#ff0055] shadow-[0_0_10px_#ff0055] z-20"></div>
                     
                     <div class="h-56 bg-black flex items-center justify-center relative overflow-hidden">
@@ -198,7 +200,7 @@
                     <div class="p-8 flex-grow flex flex-col justify-between relative z-30 bg-gradient-to-t from-black/80 to-transparent">
                         <div>
                             <div class="flex justify-between items-start mb-4">
-                                <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#ff0055] transition-colors drop-shadow-md">Action Fighter</h3>
+                                <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#ff0055] transition-colors drop-shadow-md game-title">Action Fighter</h3>
                                 <span class="px-3 py-1 bg-[#ff0055]/20 text-[#ff0055] text-xs font-black uppercase tracking-wider rounded-sm neon-border-pink animate-pulse">
                                     P2 Klaar
                                 </span>
@@ -213,34 +215,44 @@
                     </div>
                 </div>
 
-                <!-- Game Card 3: Placeholder (Purple Theme) -->
-                <div class="game-card purple glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group">
+                <!-- Game Card 3: Tuin Inbreek (Purple Theme - NIEUW) -->
+                <div class="game-card purple glass-panel rounded-xl overflow-hidden flex flex-col h-full border border-white/10 relative group" data-title="Tuin Inbreek">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#b026ff] shadow-[0_0_10px_#b026ff] z-20"></div>
                     
+                    <!-- Nieuw Badge -->
+                    <div class="absolute top-3 -right-1 z-40">
+                        <span class="bg-red-500 text-white text-xs font-black px-4 py-1.5 uppercase tracking-widest rounded-l-md shadow-[0_0_15px_#ff0000] animate-bounce block border-y border-l border-white/40">NIEUW!</span>
+                    </div>
+
                     <div class="h-56 bg-black flex items-center justify-center relative overflow-hidden">
+                        <!-- De nieuwe foto -->
+                        <img src="tuininbreek.jpg" alt="Tuin Inbreek" class="w-full h-full object-cover absolute inset-0 z-0 group-hover:scale-110 transition-all duration-700" onerror="this.style.display='none'">
                         <div class="scanlines"></div>
-                        <span class="text-[#b026ff] arcade-font tracking-widest text-lg font-bold relative z-10 drop-shadow-[0_0_5px_#b026ff]">VERGRENDELD</span>
                     </div>
                     
                     <div class="p-8 flex-grow flex flex-col justify-between relative z-30 bg-gradient-to-t from-black/80 to-transparent">
                         <div>
                             <div class="flex justify-between items-start mb-4">
-                                <h3 class="arcade-font text-2xl font-bold text-gray-500 group-hover:text-[#b026ff] transition-colors drop-shadow-md">Onbekend Bestand</h3>
-                                <span class="px-3 py-1 bg-gray-800/80 text-gray-500 border border-gray-600 text-xs font-black uppercase tracking-wider rounded-sm">
-                                    Offline
+                                <h3 class="arcade-font text-2xl font-bold text-white group-hover:text-[#b026ff] transition-colors drop-shadow-md game-title">Tuin Inbreek</h3>
+                                <span class="px-3 py-1 bg-[#b026ff]/20 text-[#b026ff] text-xs font-black uppercase tracking-wider rounded-sm neon-border-purple animate-pulse">
+                                    P3 Klaar
                                 </span>
                             </div>
-                            <p class="text-gray-500 text-sm mb-8 leading-relaxed">
-                                Een nieuwe uitdager nadert... speldata wordt gedownload naar de mainframe.
+                            <p class="text-gray-400 text-sm mb-8 leading-relaxed">
+                                breek in de karen zn tuin. Probeer ongezien je missie te voltooien!
                             </p>
                         </div>
-                        <button class="arcade-font w-full text-center block bg-transparent border-2 border-gray-700 text-gray-500 cursor-not-allowed font-bold py-3 px-4 uppercase tracking-widest" disabled>
-                            Binnenkort
+                        <!-- Aangepaste bestandsnaam: tuininbreek.html (zorg dat deze klopt in je GitHub!) -->
+                        <button onclick="openGame('tuininbreek.html')" class="arcade-font w-full text-center block bg-transparent border-2 border-[#b026ff] text-[#b026ff] hover:bg-[#b026ff] hover:text-white hover:shadow-[0_0_20px_#b026ff] font-bold py-3 px-4 transition-all uppercase tracking-widest">
+                            Speel Spel
                         </button>
                     </div>
                 </div>
 
             </div>
+            
+            <!-- Resultaat melding als je iets zoekt dat niet bestaat -->
+            <p id="noResults" class="text-center text-gray-500 mt-10 hidden arcade-font tracking-widest">GEEN SPELLEN GEVONDEN...</p>
         </div>
     </main>
 
@@ -290,6 +302,32 @@
             gameOverlay.classList.remove('flex');
             gameIframe.src = '';
             document.body.style.overflow = '';
+        }
+
+        // --- NIEUWE FUNCTIE: Zoekbalk Filter Logica ---
+        function searchGames() {
+            let input = document.getElementById('searchBar').value.toLowerCase();
+            let cards = document.getElementsByClassName('game-card');
+            let visibleCount = 0;
+            let noResultsMsg = document.getElementById('noResults');
+
+            // Loop door alle game cards en verberg degene die niet matchen
+            for (let i = 0; i < cards.length; i++) {
+                let title = cards[i].getAttribute('data-title').toLowerCase();
+                if (title.includes(input)) {
+                    cards[i].style.display = "flex";
+                    visibleCount++;
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+
+            // Laat een melding zien als er niks gevonden is
+            if(visibleCount === 0) {
+                noResultsMsg.style.display = "block";
+            } else {
+                noResultsMsg.style.display = "none";
+            }
         }
     </script>
 </body>
