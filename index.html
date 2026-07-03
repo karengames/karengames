@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Karen Games</title>
     
-    <!-- Website Icofdgen (Favicon) -->
+    <!-- Website Icon (Favicon) -->
     <link rel="icon" href="background.jpeg" type="image/jpeg">
     
     <!-- Tailwind CSS for styling -->
@@ -24,6 +24,22 @@
             background-color: #1e1e2f; /* Fallback color */
             color: #ffffff;
             overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar voor een premium look */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f17; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #3b82f6, #a855f7); 
+            border-radius: 10px;
+            border: 3px solid #0f0f17;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, #2563eb, #9333ea); 
         }
 
         /* Speelse font voor titels */
@@ -49,12 +65,26 @@
 
         /* Soepele hover animaties voor de kaarten */
         .game-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        
         .game-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            border-color: rgba(255, 255, 255, 0.3);
+            z-index: 10;
+        }
+
+        /* WAVE ANIMATIE VOOR TEKST */
+        .wave-char {
+            display: inline-block;
+            animation: waveText 2s ease-in-out infinite;
+            animation-delay: calc(0.08s * var(--i));
+            transform-origin: bottom center;
+        }
+        @keyframes waveText {
+            0%, 100% { transform: translateY(0px) scaleY(1); }
+            20% { transform: translateY(-10px) scaleY(1.1); }
+            40% { transform: translateY(0px) scaleY(1); }
         }
 
         /* Zachte zweef animatie voor de hero sectie */
@@ -66,33 +96,67 @@
         .float-anim {
             animation: zachtZweven 5s ease-in-out infinite;
         }
-        
-        /* Verberg scrollbar in iframe als het niet nodig is */
-        iframe {
-            border-radius: 12px;
+
+        /* Fade In Up Animatie voor het laden van de pagina */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+        }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+
+        /* Zwevende deeltjes in de achtergrond */
+        .particles-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(2px);
+            border-radius: 50%;
+            animation: floatParticle linear infinite;
+        }
+        @keyframes floatParticle {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            20% { opacity: 0.5; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col relative">
 
+    <!-- Zwevende Achtergrond Deeltjes -->
+    <div class="particles-container" id="particles"></div>
+
     <!-- Navigation Bar -->
-    <nav class="glass-header sticky top-0 z-40 w-full">
+    <nav class="glass-header sticky top-0 z-40 w-full fade-in-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <div class="flex-shrink-0 flex items-center gap-4">
+                <div class="flex-shrink-0 flex items-center gap-4 group cursor-pointer">
                     <!-- Custom Logo -->
-                    <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg border-2 border-white/20">
+                    <div class="w-12 h-12 rounded-2xl overflow-hidden shadow-lg border-2 border-white/20 group-hover:scale-110 group-hover:border-blue-400 transition-all duration-300">
                         <img src="background.jpeg" alt="Logo" class="w-full h-full object-cover">
                     </div>
-                    <span class="title-font font-bold text-2xl md:text-3xl tracking-wide text-white">
-                        Karen<span class="text-blue-400">Games</span>
+                    <!-- Wave Text Logo -->
+                    <span class="title-font font-bold text-2xl md:text-3xl tracking-wide text-white wavetext">
+                        KarenGames
                     </span>
                 </div>
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-6">
-                        <a href="#" class="font-bold px-3 py-2 text-white hover:text-blue-400 transition-colors">Home</a>
-                        <a href="#nieuws" class="font-bold px-3 py-2 text-white hover:text-blue-400 transition-colors">Nieuws</a>
-                        <a href="#games" class="font-bold px-3 py-2 text-gray-300 hover:text-blue-400 transition-colors">Spellen</a>
+                        <a href="#" class="font-bold px-3 py-2 text-white hover:text-blue-400 transition-colors hover:scale-110 inline-block transform">Home</a>
+                        <a href="#nieuws" class="font-bold px-3 py-2 text-white hover:text-blue-400 transition-colors hover:scale-110 inline-block transform">Nieuws</a>
+                        <a href="#games" class="font-bold px-3 py-2 text-gray-300 hover:text-blue-400 transition-colors hover:scale-110 inline-block transform">Spellen</a>
                     </div>
                 </div>
             </div>
@@ -103,51 +167,51 @@
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
         
         <!-- Hero Section -->
-        <div class="relative py-16 lg:py-24 glass-panel rounded-3xl mb-16 overflow-hidden">
+        <div class="relative py-16 lg:py-24 glass-panel rounded-3xl mb-16 overflow-hidden fade-in-up delay-1">
             <!-- Zachte, kleurrijke glow in de achtergrond -->
-            <div class="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-screen filter blur-[100px] opacity-40"></div>
-            <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500 rounded-full mix-blend-screen filter blur-[100px] opacity-40"></div>
+            <div class="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-pulse"></div>
+            <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-500 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-pulse" style="animation-delay: 2s;"></div>
             
             <div class="relative z-10 text-center float-anim px-4">
-                <span class="inline-block py-1 px-4 rounded-full bg-blue-500/20 text-blue-300 font-bold text-sm mb-6 border border-blue-500/30">
+                <span class="inline-block py-1 px-4 rounded-full bg-blue-500/20 text-blue-300 font-bold text-sm mb-6 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                     ✨ Welkom bij de leukste games
                 </span>
-                <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-white title-font">
-                    Klaar om <br class="md:hidden" />
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">belletje te lellen?</span>
+                
+                <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-white title-font flex flex-col items-center gap-2">
+                    <span>Klaar om</span>
+                    <!-- Wave Text: belletje te lellen? (Gefixt: solid kleur in plaats van gradient) -->
+                    <span class="text-purple-400 wavetext drop-shadow-[0_0_15px_rgba(168,85,247,0.8)] pb-2">belletje te lellen?</span>
                 </h1>
                 
                 <div class="mt-4 mb-10 inline-block">
-                    <p class="text-base md:text-xl text-red-100 bg-red-500/80 px-6 py-2 rounded-xl font-bold tracking-wide shadow-lg transform rotate-2">
+                    <p class="text-base md:text-xl text-red-100 bg-red-500/80 px-6 py-2 rounded-xl font-bold tracking-wide shadow-lg transform rotate-2 hover:rotate-0 hover:scale-110 transition-all duration-300 cursor-default">
                         🚨 Niet spelen in school!
                     </p>
                 </div>
                 
                 <br>
-                <a href="#games" class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1">
+                <a href="#games" class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 transition-all duration-300 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] hover:-translate-y-2 active:scale-95">
                     Bekijk de Spellen
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    <svg class="w-5 h-5 ml-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
                 </a>
             </div>
         </div>
 
         <!-- Nieuws Sectie -->
-        <div id="nieuws" class="mb-20 relative z-10">
+        <div id="nieuws" class="mb-20 relative z-10 fade-in-up delay-2">
             <div class="flex items-center gap-3 mb-6">
                 <h2 class="text-3xl md:text-4xl font-bold text-white title-font">
                     Laatste Nieuws
                 </h2>
-                <span class="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">Update</span>
+                <span class="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse">Update</span>
             </div>
             
-            <div class="glass-panel p-6 md:p-8 rounded-2xl relative overflow-hidden group">
+            <div class="glass-panel p-6 md:p-8 rounded-2xl relative overflow-hidden hover:border-blue-400/50 transition-colors duration-300">
                 <div class="relative z-10 flex flex-col md:flex-row gap-6 items-start">
-                    <!-- Icoontje -->
-                    <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border border-blue-500/30">
+                    <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border border-blue-500/30 group-hover:scale-110 transition-transform">
                         <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
                     </div>
                     
-                    <!-- Tekst uit nieuws.txt -->
                     <div class="flex-grow">
                         <h3 class="text-lg font-bold text-white mb-2 title-font">Bericht van de Admin:</h3>
                         <div id="news-text" class="text-gray-300 whitespace-pre-wrap text-base leading-relaxed">
@@ -159,16 +223,16 @@
         </div>
 
         <!-- Games Grid Section -->
-        <div id="games" class="mb-20 relative z-10">
+        <div id="games" class="mb-20 relative z-10 fade-in-up delay-3">
             <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
                 <h2 class="text-3xl md:text-4xl font-bold text-white title-font">
                     Kies je Spel
                 </h2>
                 
-                <!-- Zoekbalk -->
-                <div class="relative w-full md:w-72">
-                    <input type="text" id="searchBar" onkeyup="searchGames()" placeholder="Zoek een spel..." class="w-full bg-black/30 border border-white/10 text-white px-5 py-3 rounded-full focus:outline-none focus:border-blue-400 focus:bg-black/50 transition-all placeholder-gray-400 shadow-inner">
-                    <svg class="w-5 h-5 absolute right-4 top-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <!-- Zoekbalk met focus animatie -->
+                <div class="relative w-full md:w-72 group">
+                    <input type="text" id="searchBar" onkeyup="searchGames()" placeholder="Zoek een spel..." class="w-full bg-black/30 border border-white/10 text-white px-5 py-3 rounded-full focus:outline-none focus:border-blue-400 focus:bg-black/50 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder-gray-400 shadow-inner">
+                    <svg class="w-5 h-5 absolute right-4 top-3.5 text-gray-400 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
             
@@ -178,7 +242,7 @@
                 <!-- Game Card 1: Kattenkwaad -->
                 <div class="game-card glass-panel rounded-2xl overflow-hidden flex flex-col h-full group" data-title="Kattenkwaad">
                     <div class="h-48 bg-gray-900 relative overflow-hidden">
-                        <img src="kattenkwaad.jpg" alt="Kattenkwaad" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIG9udGJyZWVrdDwvdGV4dD48L3N2Zz4='">
+                        <img src="kattenkwaad.jpg" alt="Kattenkwaad" class="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-all duration-500" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIG9udGJyZWVrdDwvdGV4dD48L3N2Zz4='">
                     </div>
                     <div class="p-6 flex-grow flex flex-col justify-between">
                         <div>
@@ -188,7 +252,7 @@
                             </div>
                             <p class="text-gray-400 text-sm mb-6 leading-relaxed">Tijd voor kattenkwaad! Spring in de stad en begin met de chaos. Zorg dat je niet gepakt wordt!</p>
                         </div>
-                        <button onclick="openGame('kattenkwaad.html')" class="w-full text-center block bg-white/10 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all border border-white/10 hover:border-blue-400 hover:shadow-lg">
+                        <button onclick="openGame('kattenkwaad.html')" class="w-full text-center block bg-white/5 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 border border-white/10 hover:border-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] active:scale-95">
                             Nu Spelen
                         </button>
                     </div>
@@ -197,7 +261,7 @@
                 <!-- Game Card 2: Fighter Game -->
                 <div class="game-card glass-panel rounded-2xl overflow-hidden flex flex-col h-full group" data-title="Action Fighter">
                     <div class="h-48 bg-gray-900 relative overflow-hidden">
-                        <img src="fighter.webp" alt="Fighter Game" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIG9udGJyZWVrdDwvdGV4dD48L3N2Zz4='">
+                        <img src="fighter.webp" alt="Fighter Game" class="w-full h-full object-cover group-hover:scale-110 group-hover:-rotate-1 transition-all duration-500" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIG9udGJyZWVrdDwvdGV4dD48L3N2Zz4='">
                     </div>
                     <div class="p-6 flex-grow flex flex-col justify-between">
                         <div>
@@ -207,7 +271,7 @@
                             </div>
                             <p class="text-gray-400 text-sm mb-6 leading-relaxed">Stap in de ultieme digitale arena en laat je verwoestende combo's zien. Ben jij de beste vechter?</p>
                         </div>
-                        <button onclick="openGame('fighter.html')" class="w-full text-center block bg-white/10 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-all border border-white/10 hover:border-purple-400 hover:shadow-lg">
+                        <button onclick="openGame('fighter.html')" class="w-full text-center block bg-white/5 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 border border-white/10 hover:border-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] active:scale-95">
                             Nu Spelen
                         </button>
                     </div>
@@ -215,13 +279,14 @@
 
                 <!-- Game Card 3: Tuin Inbreek -->
                 <div class="game-card glass-panel rounded-2xl overflow-hidden flex flex-col h-full group border border-blue-400/30" data-title="Tuin Inbreek">
-                    <!-- Nieuw Badge -->
-                    <div class="absolute top-4 right-4 z-20">
-                        <span class="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">Nieuw!</span>
+                    <!-- Nieuw Badge met ping animatie -->
+                    <div class="absolute top-4 right-4 z-20 flex h-6 items-center">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                        <span class="relative inline-flex bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">Nieuw!</span>
                     </div>
                     
                     <div class="h-48 bg-gray-900 relative overflow-hidden">
-                        <img src="tuininbreek.jpg" alt="Tuin Inbreek" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIG9udGJyZWVrdDwvdGV4dD48L3N2Zz4='">
+                        <img src="tuininbreek.jpg" alt="Tuin Inbreek" class="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-all duration-500" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Gb3RvIG9udGJyZWVrdDwvdGV4dD48L3N2Zz4='">
                     </div>
                     <div class="p-6 flex-grow flex flex-col justify-between">
                         <div>
@@ -231,7 +296,7 @@
                             </div>
                             <p class="text-gray-400 text-sm mb-6 leading-relaxed">Breek in de Karen z'n tuin. Probeer ongezien je missie te voltooien en vermijd de obstakels!</p>
                         </div>
-                        <button onclick="openGame('tuininbreek.html')" class="w-full text-center block bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30">
+                        <button onclick="openGame('tuininbreek.html')" class="w-full text-center block bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] active:scale-95">
                             Nu Spelen
                         </button>
                     </div>
@@ -247,30 +312,31 @@
     </main>
 
     <!-- Footer -->
-    <footer class="glass-panel mt-auto py-8 text-center text-gray-400">
+    <footer class="glass-panel mt-auto py-8 text-center text-gray-400 z-10 relative">
         <p class="font-bold text-sm">&copy; <span id="year"></span> Karen Games.</p>
         <p class="text-xs mt-2 text-gray-500">deel deze peak website met je vrienden ;)</p>
     </footer>
 
-    <!-- Iframe Game Player Overlay (Nu clean en modern) -->
-    <div id="game-overlay" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-md flex-col">
+    <!-- Iframe Game Player Overlay (Full screen met alleen dunne balk) -->
+    <div id="game-overlay" class="fixed inset-0 z-50 hidden bg-black flex-col transition-opacity duration-300 opacity-0">
         
-        <!-- Game Area -->
-        <div class="flex-grow w-full relative pt-4 px-2 md:px-8 pb-4">
-            <div class="w-full h-full bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative">
-                <!-- Laad animatie in de achtergrond -->
-                <div class="absolute inset-0 flex items-center justify-center -z-10">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <!-- Game Area (Volledig Scherm) -->
+        <div class="flex-grow w-full relative">
+            <!-- Laad animatie in de achtergrond -->
+            <div class="absolute inset-0 flex items-center justify-center -z-10 bg-gray-900">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
+                    <span class="text-blue-400 font-bold tracking-widest animate-pulse">LADEN...</span>
                 </div>
-                
-                <iframe id="game-iframe" class="absolute inset-0 w-full h-full border-0 bg-transparent" src=""></iframe>
             </div>
+            
+            <iframe id="game-iframe" class="absolute inset-0 w-full h-full border-0 bg-transparent" src=""></iframe>
         </div>
 
         <!-- Dun balkje onderin (Terug knop) -->
-        <div class="w-full p-3 flex justify-center items-center bg-black/80 border-t border-white/10">
-            <button onclick="closeGame()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition-all flex items-center gap-2 shadow-lg hover:shadow-red-500/30 group text-sm">
-                <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        <div class="w-full py-2 flex justify-center items-center bg-[#0a0a0a] shrink-0 border-t border-gray-800">
+            <button onclick="closeGame()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-6 rounded-full transition-all duration-300 flex items-center gap-2 text-sm shadow-md hover:scale-105 active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Terug naar website
             </button>
         </div>
@@ -281,6 +347,43 @@
         // Set year
         document.getElementById('year').textContent = new Date().getFullYear();
 
+        // --- WAVE TEXT GENERATOR ---
+        // Zoekt alle elementen met de class 'wavetext' en splitst de letters in spans
+        document.querySelectorAll('.wavetext').forEach(element => {
+            let tekst = element.innerText;
+            element.innerText = ''; // Maak originele tekst leeg
+            
+            for(let i = 0; i < tekst.length; i++) {
+                let span = document.createElement('span');
+                // Zorg dat spaties als echte spaties worden behandeld
+                span.innerHTML = tekst[i] === ' ' ? '&nbsp;' : tekst[i];
+                
+                // Geef een variabele mee aan CSS voor de delay
+                span.style.setProperty('--i', i);
+                
+                if(tekst[i] !== ' ') {
+                    span.classList.add('wave-char');
+                }
+                
+                element.appendChild(span);
+            }
+        });
+
+        // --- ZWEVENDE DEELTJES GENERATOR ---
+        const particlesContainer = document.getElementById('particles');
+        for(let i = 0; i < 20; i++) {
+            let particle = document.createElement('div');
+            particle.classList.add('particle');
+            // Willekeurige groottes, posities en snelheden
+            let size = Math.random() * 15 + 5;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = Math.random() * 100 + 'vw';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particle.style.animationDelay = (Math.random() * 5) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
         // Game Player Logic
         const gameOverlay = document.getElementById('game-overlay');
         const gameIframe = document.getElementById('game-iframe');
@@ -288,15 +391,24 @@
         function openGame(gameUrl) {
             gameIframe.src = gameUrl;
             gameOverlay.classList.remove('hidden');
-            gameOverlay.classList.add('flex');
+            // Een piepkleine delay zorgt ervoor dat de transition (fade-in) netjes werkt
+            setTimeout(() => {
+                gameOverlay.classList.remove('opacity-0');
+                gameOverlay.classList.add('opacity-100');
+            }, 10);
             document.body.style.overflow = 'hidden';
         }
 
         function closeGame() {
-            gameOverlay.classList.add('hidden');
-            gameOverlay.classList.remove('flex');
-            gameIframe.src = '';
-            document.body.style.overflow = '';
+            gameOverlay.classList.remove('opacity-100');
+            gameOverlay.classList.add('opacity-0');
+            
+            // Wacht tot de fade-out klaar is voordat we het iframe sluiten
+            setTimeout(() => {
+                gameOverlay.classList.add('hidden');
+                gameIframe.src = '';
+                document.body.style.overflow = '';
+            }, 300);
         }
 
         // Zoekbalk
@@ -310,6 +422,8 @@
                 let title = cards[i].getAttribute('data-title').toLowerCase();
                 if (title.includes(input)) {
                     cards[i].style.display = "flex";
+                    // Reset animatie voor als het terugkomt
+                    cards[i].style.animation = "fadeInUp 0.4s ease-out forwards";
                     visibleCount++;
                 } else {
                     cards[i].style.display = "none";
@@ -322,15 +436,13 @@
             }
         }
 
-        // Nieuws inladen (zonder de hacker teksten)
+        // Nieuws inladen
         async function fetchNieuws() {
             const nieuwsElement = document.getElementById('news-text');
             try {
-                // Vraag het bestand 'nieuws.txt' op met een extra code om te zorgen dat we de allernieuwste versie ophalen
                 const response = await fetch('nieuws.txt?v=' + new Date().getTime());
                 if (response.ok) {
                     const tekst = await response.text();
-                    
                     if(tekst.trim() === "") {
                         nieuwsElement.innerText = "Geen speciaal nieuws vandaag. Veel speelplezier!";
                     } else {
