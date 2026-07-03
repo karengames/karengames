@@ -312,20 +312,20 @@
     </footer>
 
     <!-- Iframe Game Player Overlay (Full screen met alleen dunne balk) -->
-    <div id="game-overlay" class="fixed inset-0 z-50 hidden bg-black flex-col transition-opacity duration-300 opacity-0">
+    <div id="game-overlay" class="fixed inset-0 z-50 hidden bg-[#0f0f17] flex-col transition-opacity duration-300 opacity-0">
         
         <!-- Game Area (Volledig Scherm) -->
         <div class="flex-grow w-full relative bg-white">
             <!-- Laad animatie in de achtergrond -->
-            <div class="absolute inset-0 flex items-center justify-center -z-10 bg-white">
+            <div class="absolute inset-0 z-0 flex items-center justify-center bg-white">
                 <div class="flex flex-col items-center gap-4">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
                     <span class="text-blue-500 font-bold tracking-widest animate-pulse">LADEN...</span>
                 </div>
             </div>
             
-            <!-- Aangepast: inline background-color op wit geforceerd zodat transparante spellen nooit de site-achtergrond gebruiken -->
-            <iframe id="game-iframe" class="absolute inset-0 w-full h-full border-0" style="background-color: #ffffff;" src=""></iframe>
+            <!-- Aangepast: inline background-color versterkt en z-index geüpdatet zodat deze strak over het laadscherm heen valt. -->
+            <iframe id="game-iframe" class="absolute inset-0 z-10 w-full h-full border-0 bg-white" style="background: #ffffff !important; background-color: #ffffff !important;" allow="autoplay; fullscreen" src=""></iframe>
         </div>
 
         <!-- Dun balkje onderin (Terug knop) -->
